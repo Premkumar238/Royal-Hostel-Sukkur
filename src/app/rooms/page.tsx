@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -49,6 +50,7 @@ interface BedWithAllocation {
 }
 
 export default function RoomsPage() {
+  const router = useRouter();
   const { currentHostel } = useHostel();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [totalBeds, setTotalBeds] = useState(0);
@@ -175,51 +177,9 @@ export default function RoomsPage() {
     setFormLoading(false);
   };
 
-  const handlePayFee = async (student: StudentWithPricing) => {
-    const today = new Date().toISOString().split("T")[0];
-    const firstOfMonth = `${today.slice(0, 8)}01`;
-    const randomInv = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
-    const rentAmount = Number(student.monthly_rent || 0);
-
-    setFormLoading(true);
-
-    const { data: existing } = await supabase
-      .from("fee_records")
-      .select("*")
-      .eq("student_id", student.id)
-      .eq("billing_month", firstOfMonth)
-      .eq("fee_type", "rent")
-      .maybeSingle();
-
-    let error;
-    if (existing) {
-      const { error: err } = await supabase
-        .from("fee_records")
-        .update({ status: "paid", payment_date: today })
-        .eq("id", existing.id);
-      error = err;
-    } else {
-      const { error: err } = await supabase.from("fee_records").insert([
-        {
-          hostel_id: currentHostel!.id,
-          student_id: student.id,
-          billing_month: firstOfMonth,
-          amount: rentAmount,
-          fee_type: "rent",
-          status: "paid",
-          payment_date: today,
-          invoice_code: randomInv,
-        },
-      ]);
-      error = err;
-    }
-
-    setFormLoading(false);
-    if (!error) {
-      alert(`Rent payment of ${formatCurrency(rentAmount)} recorded successfully!`);
-    } else {
-      alert(error.message);
-    }
+  const handleGoToPayRent = (studentId: string) => {
+    const month = new Date().toISOString().slice(0, 7);
+    router.push(`/fees/pay?studentId=${studentId}&month=${month}&include=rent`);
   };
 
   const handleCheckOut = async (allocationId: string, bedId: string) => {
@@ -678,7 +638,8 @@ export default function RoomsPage() {
 
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() => handlePayFee(s)}
+                                  type="button"
+                                  onClick={() => handleGoToPayRent(s.id)}
                                   className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 cursor-pointer shadow-xs active:scale-95 transition-all"
                                 >
                                   <Receipt className="h-3.5 w-3.5" />

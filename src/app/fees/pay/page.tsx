@@ -27,6 +27,7 @@ function PayInvoiceForm() {
   const searchParams = useSearchParams();
   const studentId = searchParams.get("studentId") ?? "";
   const monthParam = searchParams.get("month") ?? new Date().toISOString().slice(0, 7);
+  const includeParam = searchParams.get("include");
 
   const { currentHostel } = useHostel();
   const supabase = createClient();
@@ -87,7 +88,10 @@ function PayInvoiceForm() {
       const messAmt = studentData && hasAnyMess(studentData) ? getMessTotal(studentData) : 0;
 
       if (rentAmt > 0 && messAmt > 0) {
-        if (rent?.status === "paid" && mess?.status !== "paid") setIncludeMode("mess");
+        if (includeParam === "rent" && rent?.status !== "paid") setIncludeMode("rent");
+        else if (includeParam === "mess" && mess?.status !== "paid") setIncludeMode("mess");
+        else if (includeParam === "both") setIncludeMode("both");
+        else if (rent?.status === "paid" && mess?.status !== "paid") setIncludeMode("mess");
         else if (mess?.status === "paid" && rent?.status !== "paid") setIncludeMode("rent");
         else setIncludeMode("both");
       } else if (rentAmt > 0) setIncludeMode("rent");
@@ -97,7 +101,7 @@ function PayInvoiceForm() {
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentHostel, studentId, billingMonth]);
+  }, [currentHostel, studentId, billingMonth, includeParam]);
 
   const rentAmount = Number(student?.monthly_rent || 0);
   const messAmount = student && hasAnyMess(student) ? getMessTotal(student) : 0;
