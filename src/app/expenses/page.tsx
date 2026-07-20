@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
-import { STAFF_ROLES, ensureStaffCategory } from "@/lib/staffUtils";
+import { STAFF_ROLES, ensureStaffCategory, isSalaryPaidForMonth } from "@/lib/staffUtils";
 import { createLinkedMessExpenseRecord } from "@/lib/messExpenseUtils";
 import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
 import type { Employee, EmployeeRole, Expense, MessExpense } from "@/types/database";
@@ -191,6 +191,13 @@ export default function ExpensesPage() {
 
   const handlePaySalary = async (employee: Employee) => {
     if (!currentHostel) return;
+
+    const salaryMonth = new Date().toISOString().slice(0, 7);
+    if (isSalaryPaidForMonth(employee.last_salary_paid_at, salaryMonth)) {
+      alert(`${employee.full_name} salary is already marked paid for this month.`);
+      return;
+    }
+
     if (!confirm(`Pay salary of ${formatCurrency(employee.monthly_salary)} to ${employee.full_name}?`)) return;
 
     setFormLoading(true);
@@ -248,6 +255,8 @@ export default function ExpensesPage() {
   const dailyMessTotal = dailyMessExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
   const messGrandTotal =
     Number(initialMessExpense?.amount || 0) + dailyMessTotal;
+
+  const salaryMonth = new Date().toISOString().slice(0, 7);
 
   const openInitialMessModal = () => {
     setInitialMessAmount(initialMessExpense?.amount ?? "");
@@ -468,7 +477,12 @@ export default function ExpensesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {employees.map((employee) => (
+                    {employees.map((employee) => {
+                      const paidThisMonth = isSalaryPaidForMonth(
+                        employee.last_salary_paid_at,
+                        salaryMonth
+                      );
+                      return (
                       <tr key={employee.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4 font-semibold text-gray-900">{employee.full_name}</td>
                         <td className="px-6 py-4">
@@ -485,14 +499,20 @@ export default function ExpensesPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handlePaySalary(employee)}
-                              disabled={formLoading}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 cursor-pointer disabled:opacity-60"
-                            >
-                              <Banknote className="h-3.5 w-3.5" />
-                              <span>Pay Salary</span>
-                            </button>
+                            {paidThisMonth ? (
+                              <span className="inline-flex items-center rounded-lg bg-green-100 px-3 py-1.5 text-xs font-semibold uppercase text-green-700">
+                                Paid
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handlePaySalary(employee)}
+                                disabled={formLoading}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 cursor-pointer disabled:opacity-60"
+                              >
+                                <Banknote className="h-3.5 w-3.5" />
+                                <span>Pay Salary</span>
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteEmployee(employee.id)}
                               className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
@@ -502,7 +522,8 @@ export default function ExpensesPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>

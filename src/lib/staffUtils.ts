@@ -32,3 +32,12 @@ export async function ensureStaffCategory(
   if (error) return null;
   return data.id;
 }
+
+export function isSalaryPaidForMonth(
+  lastSalaryPaidAt: string | null | undefined,
+  yearMonth: string
+): boolean {
+  if (!lastSalaryPaidAt) return false;
+  const paidMonth = lastSalaryPaidAt.slice(0, 7);
+  return paidMonth === yearMonth.slice(0, 7);
+}
