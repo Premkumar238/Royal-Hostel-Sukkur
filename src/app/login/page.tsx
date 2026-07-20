@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, User, Lock, Eye, EyeOff, ArrowRight, HelpCircle, Shield } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Building2, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { APP_NAME } from "@/lib/appConfig";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -39,9 +39,7 @@ export default function LoginPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
               <Building2 className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-blue-600">
-              Hostel Management System
-            </span>
+            <span className="text-xl font-bold text-blue-600">{APP_NAME}</span>
           </div>
 
           <div className="mx-auto max-w-md">
@@ -67,7 +65,7 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@hostelpro.com"
+                    placeholder="admin@example.com"
                     required
                     className="w-full rounded-lg border border-gray-200 py-3 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
@@ -121,24 +119,11 @@ export default function LoginPage() {
                 {!loading && <ArrowRight className="h-4 w-4" />}
               </button>
             </form>
-
-            <p className="mt-6 text-center text-sm text-gray-500">
-              Don&apos;t have an account?{" "}
-              <a href="#" className="font-semibold text-blue-600 hover:text-blue-700">
-                Request Access
-              </a>
-            </p>
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-md items-center justify-between text-xs text-gray-400">
-          <a href="#" className="flex items-center gap-1 hover:text-gray-600">
-            <HelpCircle className="h-3.5 w-3.5" /> Help Center
-          </a>
-          <a href="#" className="flex items-center gap-1 hover:text-gray-600">
-            <Shield className="h-3.5 w-3.5" /> Privacy Policy
-          </a>
-          <span>v2.4.0</span>
+        <div className="mx-auto flex w-full max-w-md items-center justify-center text-xs text-gray-400">
+          <span>Secure admin access</span>
         </div>
       </div>
 
@@ -150,10 +135,10 @@ export default function LoginPage() {
         <div className="relative flex h-full flex-col justify-end p-12">
           <div className="rounded-xl bg-white/10 p-6 backdrop-blur-sm">
             <p className="text-lg font-medium italic text-white/90">
-              &ldquo;Streamlining hostel operations across 50+ locations.&rdquo;
+              &ldquo;Manage students, rooms, fees, and expenses in one place.&rdquo;
             </p>
             <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-white/50">
-              — Enterprise Management Suite
+              — {APP_NAME}
             </p>
           </div>
         </div>

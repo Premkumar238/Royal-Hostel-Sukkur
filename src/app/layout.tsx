@@ -6,8 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "HostelPro - Hostel Management System",
-  description: "Multi-tenant SaaS hostel management platform",
+  title: `${process.env.NEXT_PUBLIC_APP_NAME?.trim() || "Royal Hostel Sukkur"} - Admin`,
+  description: "Hostel management for a single property",
 };
 
 export default function RootLayout({

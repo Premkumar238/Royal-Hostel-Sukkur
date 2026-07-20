@@ -10,71 +10,56 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Hostel, HostelMember } from "@/types/database";
+import { SINGLE_HOSTEL_ID } from "@/lib/appConfig";
+import type { Hostel } from "@/types/database";
 
 interface HostelContextType {
   currentHostel: Hostel | null;
-  memberships: HostelMember[];
   loading: boolean;
-  switchHostel: (hostelId: string) => void;
 }
 
 const HostelContext = createContext<HostelContextType | undefined>(undefined);
 
-const STORAGE_KEY = "hostelpro_current_hostel";
-
 export function HostelProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [currentHostel, setCurrentHostel] = useState<Hostel | null>(null);
-  const [memberships, setMemberships] = useState<HostelMember[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  const fetchMemberships = useCallback(async () => {
+  const fetchHostel = useCallback(async () => {
     if (!user) {
-      setMemberships([]);
       setCurrentHostel(null);
       setLoading(false);
       return;
     }
 
-    const { data } = await supabase
-      .from("hostel_members")
-      .select("*, hostel:hostels(*)")
-      .eq("user_id", user.id)
-      .eq("is_active", true);
+    setLoading(true);
 
-    if (data && data.length > 0) {
-      setMemberships(data as HostelMember[]);
+    const { data, error } = SINGLE_HOSTEL_ID
+      ? await supabase.from("hostels").select("*").eq("id", SINGLE_HOSTEL_ID).maybeSingle()
+      : await supabase
+          .from("hostels")
+          .select("*")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
 
-      const savedId = localStorage.getItem(STORAGE_KEY);
-      const saved = data.find((m) => m.hostel_id === savedId);
-      const selected = saved ?? data[0];
-      setCurrentHostel((selected as HostelMember).hostel as Hostel);
-      localStorage.setItem(STORAGE_KEY, selected.hostel_id);
-    } else {
-      setMemberships([]);
+    if (error) {
+      console.error("Failed to load hostel:", error.message);
       setCurrentHostel(null);
+    } else {
+      setCurrentHostel(data);
     }
+
     setLoading(false);
   }, [user, supabase]);
 
   useEffect(() => {
-    fetchMemberships();
-  }, [fetchMemberships]);
-
-  const switchHostel = (hostelId: string) => {
-    const member = memberships.find((m) => m.hostel_id === hostelId);
-    if (member?.hostel) {
-      setCurrentHostel(member.hostel as Hostel);
-      localStorage.setItem(STORAGE_KEY, hostelId);
-    }
-  };
+    fetchHostel();
+  }, [fetchHostel]);
 
   return (
-    <HostelContext.Provider
-      value={{ currentHostel, memberships, loading, switchHostel }}
-    >
+    <HostelContext.Provider value={{ currentHostel, loading }}>
       {children}
     </HostelContext.Provider>
   );

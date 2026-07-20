@@ -49,12 +49,12 @@ export async function downloadPDF(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(17, 24, 39); // Gray-900
-    doc.text("HostelPro Management Suite", 26, 21);
+    doc.text(hostelName || "Hostel Management", 26, 21);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(107, 114, 128); // Gray-500
-    doc.text(`Tenant: ${hostelName || "System Workspace"}`, 14, 32);
+    doc.text(`Tenant: ${hostelName || "Hostel"}`, 14, 32);
     doc.text(`Report Name: ${title}`, 14, 37);
     doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 42);
 
