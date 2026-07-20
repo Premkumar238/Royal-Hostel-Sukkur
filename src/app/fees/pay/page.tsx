@@ -15,6 +15,7 @@ import {
   generateInvoiceCode,
   getInvoiceTotal,
 } from "@/lib/studentInvoice";
+import { formatSupabaseError, saveFeeRecord } from "@/lib/feeRecordUtils";
 import { downloadStudentInvoicePDF } from "@/lib/pdfGenerator";
 import type { FeeRecord, PaymentMethod, Student } from "@/types/database";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
@@ -134,89 +135,85 @@ function PayInvoiceForm() {
     const paidOn = markAsPaid ? paymentDate : null;
     const notesTrimmed = invoiceNotes.trim() || null;
 
-    const recordFields = {
-      invoice_code: invoiceCode,
-      status,
-      payment_date: paidOn,
-      payment_method: paymentMethod,
-      invoice_notes: notesTrimmed,
-    };
-
     try {
+      let paymentMetaStored = true;
+
       if (includeRent && canIncludeRent) {
-        if (rentRecord) {
-          const { error } = await supabase
-            .from("fee_records")
-            .update({
-              amount: rentAmount,
-              ...recordFields,
-            })
-            .eq("id", rentRecord.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from("fee_records").insert([
-            {
-              hostel_id: currentHostel.id,
-              student_id: student.id,
-              billing_month: billingMonthDate,
-              amount: rentAmount,
-              fee_type: "rent",
-              ...recordFields,
-            },
-          ]);
-          if (error) throw error;
+        const result = await saveFeeRecord(supabase, {
+          hostelId: currentHostel.id,
+          studentId: student.id,
+          billingMonthDate,
+          feeType: "rent",
+          amount: rentAmount,
+          existing: rentRecord,
+          invoiceCode,
+          status,
+          paymentDate: paidOn,
+          paymentMethod,
+          invoiceNotes: notesTrimmed,
+        });
+        if (!result.ok) {
+          alert(result.message);
+          return;
         }
+        if (!result.paymentMetaStored) paymentMetaStored = false;
       }
 
       if (includeMess && canIncludeMess) {
-        if (messRecord) {
-          const { error } = await supabase
-            .from("fee_records")
-            .update({
-              amount: messAmount,
-              ...recordFields,
-            })
-            .eq("id", messRecord.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from("fee_records").insert([
-            {
-              hostel_id: currentHostel.id,
-              student_id: student.id,
-              billing_month: billingMonthDate,
-              amount: messAmount,
-              fee_type: "mess",
-              ...recordFields,
-            },
-          ]);
-          if (error) throw error;
+        const result = await saveFeeRecord(supabase, {
+          hostelId: currentHostel.id,
+          studentId: student.id,
+          billingMonthDate,
+          feeType: "mess",
+          amount: messAmount,
+          existing: messRecord,
+          invoiceCode,
+          status,
+          paymentDate: paidOn,
+          paymentMethod,
+          invoiceNotes: notesTrimmed,
+        });
+        if (!result.ok) {
+          alert(result.message);
+          return;
         }
+        if (!result.paymentMetaStored) paymentMetaStored = false;
       }
 
-      await downloadStudentInvoicePDF({
-        invoiceCode,
-        issueDate: formatDate(invoiceDate),
-        billingMonthLabel: formatMonth(billingMonthDate),
-        hostelName: currentHostel.name,
-        hostelAddress: currentHostel.address,
-        hostelPhone: currentHostel.contact_phone,
-        currency: currentHostel.currency,
-        studentName: student.full_name ?? student.student_code,
-        studentCode: student.student_code,
-        studentPhone: student.phone,
-        studentCnic: student.cnic,
-        lineItems,
-        total,
-        status: markAsPaid ? "paid" : "pending",
-        paymentDate: markAsPaid ? formatDate(paymentDate) : null,
-        paymentMethod,
-        invoiceNotes: notesTrimmed,
-      });
+      if (!paymentMetaStored) {
+        alert(
+          "Invoice saved, but payment method and notes were not stored. Run the Supabase SQL for payment_method and invoice_notes (see migration file), then save again."
+        );
+      }
+
+      try {
+        await downloadStudentInvoicePDF({
+          invoiceCode,
+          issueDate: formatDate(invoiceDate),
+          billingMonthLabel: formatMonth(billingMonthDate),
+          hostelName: currentHostel.name,
+          hostelAddress: currentHostel.address,
+          hostelPhone: currentHostel.contact_phone,
+          currency: currentHostel.currency,
+          studentName: student.full_name ?? student.student_code,
+          studentCode: student.student_code,
+          studentPhone: student.phone,
+          studentCnic: student.cnic,
+          lineItems,
+          total,
+          status: markAsPaid ? "paid" : "pending",
+          paymentDate: markAsPaid ? formatDate(paymentDate) : null,
+          paymentMethod,
+          invoiceNotes: notesTrimmed,
+        });
+      } catch (pdfErr) {
+        alert(`Invoice saved, but PDF failed: ${formatSupabaseError(pdfErr)}`);
+      }
 
       router.push(`/fees?month=${billingMonth}`);
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not save invoice.");
+      alert(formatSupabaseError(err));
     } finally {
       setSaving(false);
     }
