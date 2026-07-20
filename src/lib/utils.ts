@@ -1,7 +1,5 @@
-export function formatCurrency(amount: number): string;
-export function formatCurrency(amount: number, currency: string): string;
-export function formatCurrency(amount: number, currency = "Rs."): string {
-  const label = currency === "PKR" ? "Rs." : currency;
+export function formatCurrency(amount: number, currency?: string | null): string {
+  const label = !currency || currency === "PKR" ? "Rs." : currency;
   return `${label} ${amount.toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
