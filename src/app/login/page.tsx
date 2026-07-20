@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Building2, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +10,28 @@ import {
   PLATFORM_NAME,
   resolveHostelLoginAccount,
 } from "@/lib/appConfig";
+import { LOCAL_HERO_FALLBACK, resolveLoginHeroUrl } from "@/lib/publicAssets";
+
+const COPYRIGHT_YEAR = 2026;
+
+function LoginHeroImage({ className, sizes }: { className?: string; sizes: string }) {
+  const primarySrc = useMemo(() => resolveLoginHeroUrl(), []);
+  const [src, setSrc] = useState(primarySrc);
+
+  return (
+    <Image
+      src={src}
+      alt="Royal Girls Hostels — Sukkur"
+      fill
+      priority
+      className={className ?? "object-cover object-center"}
+      sizes={sizes}
+      onError={() => {
+        if (src !== LOCAL_HERO_FALLBACK) setSrc(LOCAL_HERO_FALLBACK);
+      }}
+    />
+  );
+}
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -44,24 +67,55 @@ export default function LoginPage() {
     router.push("/dashboard");
   };
 
+  const fillHostel = (displayName: string) => {
+    setUsername(displayName);
+    setError("");
+  };
+
   return (
-    <div className="flex min-h-[100dvh]">
-      <div className="flex w-full flex-col justify-between bg-white px-4 py-6 sm:px-8 lg:w-1/2 lg:px-16 xl:px-24">
+    <div className="flex min-h-[100dvh] flex-col lg:flex-row">
+      <div className="relative h-52 shrink-0 sm:h-64 lg:hidden">
+        <LoginHeroImage sizes="100vw" />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/40 to-gray-900/20" />
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <p className="text-lg font-bold text-white">{PLATFORM_NAME}</p>
+          <p className="mt-1 text-sm text-white/85">Safe, modern accommodation in Sukkur</p>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-between bg-white px-4 py-6 sm:px-8 lg:w-[min(100%,28rem)] lg:shrink-0 lg:px-10 xl:w-[32rem] xl:px-12">
         <div>
-          <div className="mb-10 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
+          <div className="mb-8 flex items-center gap-3 lg:mb-10">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-600/25">
               <Building2 className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-blue-600">{PLATFORM_NAME}</span>
+            <div>
+              <span className="block text-lg font-bold text-gray-900">{PLATFORM_NAME}</span>
+              <span className="text-xs font-medium text-gray-400">Admin portal</span>
+            </div>
           </div>
 
-          <div className="mx-auto max-w-md">
-            <h1 className="text-2xl font-bold text-gray-900">Hostel login</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Sign in with your hostel name and password.
+          <div className="mx-auto max-w-md lg:mx-0">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Welcome back</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+              Sign in with your hostel name and password to manage students, rooms, fees, and
+              expenses.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div className="mt-4 flex flex-wrap gap-2">
+              {HOSTEL_LOGIN_ACCOUNTS.map((account) => (
+                <button
+                  key={account.hostelSlug}
+                  type="button"
+                  onClick={() => fillHostel(account.displayName)}
+                  className="rounded-full border border-blue-100 bg-blue-50/80 px-3 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                >
+                  {account.displayName}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               {error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   {error}
@@ -81,12 +135,9 @@ export default function LoginPage() {
                     placeholder="Royal Girls Hostel 1"
                     required
                     autoComplete="username"
-                    className="w-full rounded-lg border border-gray-200 py-3 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-3 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
-                <p className="mt-2 text-xs text-gray-400">
-                  {HOSTEL_LOGIN_ACCOUNTS.map((a) => a.displayName).join(" · ")}
-                </p>
               </div>
 
               <div>
@@ -101,12 +152,13 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     autoComplete="current-password"
-                    className="w-full rounded-lg border border-gray-200 py-3 pl-10 pr-10 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-3 pl-10 pr-10 text-sm text-gray-900 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -116,7 +168,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-colors hover:bg-blue-700 disabled:opacity-60"
               >
                 {loading ? "Signing in..." : "Sign In"}
                 {!loading && <ArrowRight className="h-4 w-4" />}
@@ -125,22 +177,35 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-md items-center justify-center text-xs text-gray-400">
-          <span>One account per hostel property</span>
-        </div>
+        <p className="mx-auto mt-8 max-w-md text-center text-xs text-gray-400 lg:mx-0 lg:text-left">
+          © {COPYRIGHT_YEAR} {PLATFORM_NAME}. All rights reserved.
+        </p>
       </div>
 
-      <div className="relative hidden lg:block lg:w-1/2">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&q=80')] bg-cover bg-center opacity-30" />
-        </div>
-        <div className="relative flex h-full flex-col justify-end p-12">
-          <div className="rounded-xl bg-white/10 p-6 backdrop-blur-sm">
-            <p className="text-lg font-medium italic text-white/90">
-              &ldquo;Separate logins for each hostel — same management platform.&rdquo;
+      <div className="relative hidden min-h-[100dvh] flex-1 lg:block">
+        <LoginHeroImage sizes="(min-width: 1024px) 60vw" />
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/75 via-blue-950/55 to-gray-900/80" />
+
+        <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
+          <div className="max-w-lg">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-200/90">
+              Sukkur · Pakistan
             </p>
-            <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-white/50">
-              — {PLATFORM_NAME}
+            <h2 className="mt-3 text-3xl font-bold leading-tight text-white xl:text-4xl">
+              A trusted home for students
+            </h2>
+          </div>
+
+          <div className="max-w-xl space-y-6">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-md">
+              <p className="text-[15px] leading-relaxed text-white/95">
+                Secure girls&apos; hostel management in Sukkur — comfortable stays, clear fees, and
+                a private admin login for each property.
+              </p>
+            </div>
+
+            <p className="text-xs font-medium text-white/50">
+              © {COPYRIGHT_YEAR} {PLATFORM_NAME}. All rights reserved.
             </p>
           </div>
         </div>
