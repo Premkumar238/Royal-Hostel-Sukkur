@@ -15,7 +15,6 @@ import {
   UtensilsCrossed,
   MessageSquareWarning,
   ShieldCheck,
-  FileText,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -24,8 +23,7 @@ const navItems = [
   { href: "/students", label: "Students", icon: Users },
   { href: "/rooms", label: "Rooms", icon: DoorOpen },
   { href: "/mess", label: "Mess Management", icon: UtensilsCrossed },
-  { href: "/fees", label: "Fee Management", icon: CreditCard },
-  { href: "/invoices", label: "Student Invoices", icon: FileText },
+  { href: "/fees", label: "Fees & Invoices", icon: CreditCard },
   { href: "/complaints", label: "Complaint Management", icon: MessageSquareWarning },
   { href: "/expenses", label: "Expense Management", icon: Receipt },
   { href: "/police-verification", label: "Police Verification", icon: ShieldCheck },
