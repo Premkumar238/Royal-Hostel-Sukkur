@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -186,7 +186,7 @@ export default function StudentsPage() {
 
   const supabase = createClient();
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -199,11 +199,11 @@ export default function StudentsPage() {
       setStudents(data);
     }
     setLoading(false);
-  };
+  }, [currentHostel, supabase]);
 
   useEffect(() => {
     fetchStudents();
-  }, [currentHostel]);
+  }, [fetchStudents]);
 
   const resetForm = () => {
     setClassification("");

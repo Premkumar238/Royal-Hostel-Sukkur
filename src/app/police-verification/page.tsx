@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -35,45 +35,45 @@ export default function PoliceVerificationPage() {
 
   const supabase = createClient();
 
+  const fetchRecord = useCallback(async () => {
+    if (!currentHostel) return;
+    setLoading(true);
+
+    const { data } = await supabase
+      .from("police_verifications")
+      .select("*")
+      .eq("hostel_id", currentHostel.id)
+      .maybeSingle();
+
+    if (data) {
+      const record = data as PoliceVerification;
+      setRecordId(record.id);
+      setOwnerName(record.owner_name ?? "");
+      setOwnerContact(record.owner_contact ?? "");
+      setOwnerEmail(record.owner_email ?? "");
+      setManagerName(record.manager_name ?? "");
+      setManagerContact(record.manager_contact ?? "");
+      setHostelName(record.hostel_name ?? currentHostel.name);
+      setAddress(record.address ?? currentHostel.address ?? "");
+      setPoliceVerificationId(record.police_verification_id ?? "");
+    } else {
+      setRecordId(null);
+      setOwnerName("");
+      setOwnerContact("");
+      setOwnerEmail("");
+      setManagerName("");
+      setManagerContact("");
+      setHostelName(currentHostel.name);
+      setAddress(currentHostel.address ?? "");
+      setPoliceVerificationId("");
+    }
+
+    setLoading(false);
+  }, [currentHostel, supabase]);
+
   useEffect(() => {
-    const fetchRecord = async () => {
-      if (!currentHostel) return;
-      setLoading(true);
-
-      const { data } = await supabase
-        .from("police_verifications")
-        .select("*")
-        .eq("hostel_id", currentHostel.id)
-        .maybeSingle();
-
-      if (data) {
-        const record = data as PoliceVerification;
-        setRecordId(record.id);
-        setOwnerName(record.owner_name ?? "");
-        setOwnerContact(record.owner_contact ?? "");
-        setOwnerEmail(record.owner_email ?? "");
-        setManagerName(record.manager_name ?? "");
-        setManagerContact(record.manager_contact ?? "");
-        setHostelName(record.hostel_name ?? currentHostel.name);
-        setAddress(record.address ?? currentHostel.address ?? "");
-        setPoliceVerificationId(record.police_verification_id ?? "");
-      } else {
-        setRecordId(null);
-        setOwnerName("");
-        setOwnerContact("");
-        setOwnerEmail("");
-        setManagerName("");
-        setManagerContact("");
-        setHostelName(currentHostel.name);
-        setAddress(currentHostel.address ?? "");
-        setPoliceVerificationId("");
-      }
-
-      setLoading(false);
-    };
-
     fetchRecord();
-  }, [currentHostel]);
+  }, [fetchRecord]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -38,7 +38,7 @@ export default function MessPage() {
   const supabase = createClient();
   const currentMonth = currentBillingMonthDate();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
 
@@ -71,11 +71,11 @@ export default function MessPage() {
     }
 
     setLoading(false);
-  };
+  }, [currentHostel, currentMonth, supabase]);
 
   useEffect(() => {
     fetchData();
-  }, [currentHostel]);
+  }, [fetchData]);
 
   const handlePayMessFee = async (student: MessStudent) => {
     const today = new Date().toISOString().split("T")[0];

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -51,7 +51,7 @@ function FeesPageContent() {
     }
   }, [searchParams]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
 
@@ -72,11 +72,11 @@ function FeesPageContent() {
     if (feeData) setFeeRecords(feeData);
 
     setLoading(false);
-  };
+  }, [billingMonthDate, currentHostel, supabase]);
 
   useEffect(() => {
     fetchData();
-  }, [currentHostel, billingMonth]);
+  }, [fetchData]);
 
   const studentRows = useMemo<StudentFeeInvoiceRow[]>(() => {
     const rentByStudent = new Map(

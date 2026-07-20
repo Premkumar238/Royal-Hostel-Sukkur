@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -33,7 +33,7 @@ export default function ComplaintsPage() {
 
   const supabase = createClient();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
 
@@ -55,11 +55,11 @@ export default function ComplaintsPage() {
     if (studentsRes.data) setStudents(studentsRes.data);
 
     setLoading(false);
-  };
+  }, [currentHostel, supabase]);
 
   useEffect(() => {
     fetchData();
-  }, [currentHostel]);
+  }, [fetchData]);
 
   const openAddModal = () => {
     setSelectedStudentId("");

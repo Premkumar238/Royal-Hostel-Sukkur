@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -64,7 +64,7 @@ export default function AllocationsPage() {
 
   const supabase = createClient();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
 
@@ -102,11 +102,11 @@ export default function AllocationsPage() {
     if (bedData) setAvailableBeds(bedData as unknown as BedWithRoom[]);
 
     setLoading(false);
-  };
+  }, [currentHostel, supabase]);
 
   useEffect(() => {
     fetchData();
-  }, [currentHostel]);
+  }, [fetchData]);
 
   const openAddModal = () => {
     setSelectedStudentId("");

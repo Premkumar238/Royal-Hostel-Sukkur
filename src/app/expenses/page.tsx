@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -70,7 +70,7 @@ export default function ExpensesPage() {
   const supabase = createClient();
   const messBillingMonthDate = `${messBillingMonth}-01`;
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
 
@@ -105,11 +105,11 @@ export default function ExpensesPage() {
     if (messRes.data) setMessExpenses(messRes.data as MessExpense[]);
 
     setLoading(false);
-  };
+  }, [currentHostel, messBillingMonthDate, supabase]);
 
   useEffect(() => {
     fetchData();
-  }, [currentHostel, messBillingMonth]);
+  }, [fetchData]);
 
   const handleLogExpense = async (e: React.FormEvent) => {
     e.preventDefault();

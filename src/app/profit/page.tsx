@@ -13,7 +13,6 @@ import {
   Coins,
   TrendingDown,
   Percent,
-  Loader2,
 } from "lucide-react";
 import {
   BarChart,
@@ -86,7 +85,8 @@ export default function ProfitPage() {
         // Aggregate by category
         const catMap: Record<string, number> = {};
         expenseData.forEach((exp) => {
-          const name = exp.expense_categories?.name || "General";
+          const cat = exp.expense_categories as { name: string } | { name: string }[] | null;
+          const name = (Array.isArray(cat) ? cat[0]?.name : cat?.name) || "General";
           catMap[name] = (catMap[name] || 0) + Number(exp.amount);
         });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -82,7 +82,7 @@ export default function RoomsPage() {
 
   const supabase = createClient();
 
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
 
@@ -111,11 +111,11 @@ export default function RoomsPage() {
     }
 
     setLoading(false);
-  };
+  }, [currentHostel, supabase]);
 
   useEffect(() => {
     fetchRooms();
-  }, [currentHostel]);
+  }, [fetchRooms]);
 
   const handleOpenDetail = async (room: Room) => {
     setSelectedRoom(room);
