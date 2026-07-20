@@ -134,40 +134,47 @@ export async function downloadStudentInvoicePDF(data: StudentInvoicePdfData) {
     // @ts-expect-error - jspdf loaded from CDN
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const primaryColor: [number, number, number] = [37, 99, 235];
+    const primaryColor: [number, number, number] = [37, 99, 235]; // blue-600
+    const primaryDark: [number, number, number] = [29, 78, 216]; // blue-700
+    const inkColor: [number, number, number] = [30, 41, 59]; // slate-800
+    const mutedInk: [number, number, number] = [51, 65, 85]; // slate-700
+    const headerMuted: [number, number, number] = [219, 234, 254]; // blue-100 on header
+    const stripeFill: [number, number, number] = [239, 246, 255]; // blue-50
 
     doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, 210, 36, "F");
+    doc.rect(0, 0, 210, 40, "F");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(255, 255, 255);
-    doc.text("STUDENT FEE INVOICE", 14, 18);
+    doc.text("STUDENT FEE INVOICE", 14, 17);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(data.hostelName, 14, 26);
+    doc.setTextColor(...headerMuted);
+    doc.text(data.hostelName, 14, 25);
     if (data.hostelPhone) doc.text(data.hostelPhone, 14, 31);
 
-    doc.setTextColor(17, 24, 39);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text(`Invoice: ${data.invoiceCode}`, 140, 18);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(75, 85, 99);
-    doc.text(`Issue Date: ${data.issueDate}`, 140, 24);
-    doc.text(`Billing Month: ${data.billingMonthLabel}`, 140, 29);
-    doc.text(`Status: ${data.status.toUpperCase()}`, 140, 34);
-
-    let y = 48;
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.setTextColor(17, 24, 39);
+    doc.text(`Invoice: ${data.invoiceCode}`, 118, 17);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...headerMuted);
+    doc.text(`Issue Date: ${data.issueDate}`, 118, 23);
+    doc.text(`Billing Month: ${data.billingMonthLabel}`, 118, 29);
+    doc.text(`Status: ${data.status.toUpperCase()}`, 118, 35);
+
+    let y = 52;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...primaryDark);
     doc.text("Bill To", 14, y);
     y += 6;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
+    doc.setTextColor(...inkColor);
     doc.text(data.studentName || "—", 14, y);
     y += 5;
     doc.text(`Student Code: ${data.studentCode}`, 14, y);
@@ -183,10 +190,12 @@ export async function downloadStudentInvoicePDF(data: StudentInvoicePdfData) {
 
     if (data.hostelAddress) {
       doc.setFont("helvetica", "bold");
-      doc.text("Hostel Address", 120, 48);
+      doc.setTextColor(...primaryDark);
+      doc.text("Hostel Address", 118, 52);
       doc.setFont("helvetica", "normal");
-      const addressLines = doc.splitTextToSize(data.hostelAddress, 70);
-      doc.text(addressLines, 120, 54);
+      doc.setTextColor(...inkColor);
+      const addressLines = doc.splitTextToSize(data.hostelAddress, 78);
+      doc.text(addressLines, 118, 58);
     }
 
     const tableBody = data.lineItems.map((item) => [
@@ -204,42 +213,51 @@ export async function downloadStudentInvoicePDF(data: StudentInvoicePdfData) {
         textColor: [255, 255, 255],
         fontStyle: "bold",
       },
-      bodyStyles: { fontSize: 9 },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: inkColor,
+      },
+      alternateRowStyles: {
+        fillColor: stripeFill,
+      },
       margin: { left: 14, right: 14 },
     });
 
     // @ts-expect-error - autotable plugin
-    const finalY = doc.lastAutoTable.finalY + 8;
+    const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(12);
+    doc.setTextColor(...primaryDark);
     doc.text(`Total Due: ${data.currency} ${data.total.toLocaleString()}`, 14, finalY);
 
     if (data.paymentDate) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(22, 101, 52);
-      doc.text(`Payment Date: ${data.paymentDate}`, 14, finalY + 6);
+      doc.text(`Payment Date: ${data.paymentDate}`, 14, finalY + 7);
     }
 
-    let notesY = finalY + (data.paymentDate ? 12 : 6);
+    let notesY = finalY + (data.paymentDate ? 14 : 8);
     if (data.paymentMethod) {
-      doc.setTextColor(55, 65, 81);
-      doc.text(
-        `Payment Method: ${formatPaymentMethodLabel(data.paymentMethod)}`,
-        14,
-        notesY
-      );
+      doc.setTextColor(...primaryDark);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Payment Method: ${formatPaymentMethodLabel(data.paymentMethod)}`, 14, notesY);
       notesY += 6;
     }
     if (data.invoiceNotes?.trim()) {
-      doc.setTextColor(75, 85, 99);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...mutedInk);
       const noteLines = doc.splitTextToSize(`Note: ${data.invoiceNotes.trim()}`, 180);
       doc.text(noteLines, 14, notesY);
+      notesY += noteLines.length * 5;
     }
 
+    doc.setDrawColor(...headerMuted);
+    doc.line(14, notesY + 4, 196, notesY + 4);
+
     doc.setFontSize(8);
-    doc.setTextColor(107, 114, 128);
-    doc.text("Thank you for your payment. This is a computer-generated invoice.", 14, 285);
+    doc.setTextColor(96, 165, 250);
+    doc.text("Thank you for your payment. This is a computer-generated invoice.", 14, notesY + 10);
 
     doc.save(`${data.invoiceCode}.pdf`);
   } catch (error) {
