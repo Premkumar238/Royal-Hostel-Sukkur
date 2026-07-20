@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar } from "@/components/layout/Sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 import { useHostel } from "@/contexts/HostelContext";
 import {
   LayoutShellProvider,
@@ -20,9 +21,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { currentHostel, loading } = useHostel();
+  const { user, loading: authLoading } = useAuth();
+  const { currentHostel, loading: hostelLoading } = useHostel();
 
-  if (loading) {
+  if (authLoading || hostelLoading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -36,8 +38,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-md rounded-xl border border-gray-200 bg-white p-6 sm:p-8 text-center shadow-sm">
           <p className="text-sm font-semibold text-gray-900">Hostel not configured</p>
           <p className="mt-2 text-sm text-gray-500">
-            Add both hostels and link each admin user in{" "}
-            <code className="text-xs">hostel_members</code> (see setup SQL in project docs).
+            {user
+              ? `No active hostel is linked to ${user.email}. Add a row in hostel_members for this user in Supabase.`
+              : "Sign in with a hostel account (hostel1 or hostel2)."}
           </p>
         </div>
       </div>

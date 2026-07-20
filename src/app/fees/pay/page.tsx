@@ -60,19 +60,20 @@ function PayInvoiceForm() {
       }
       setLoading(true);
 
-      const { data: studentData } = await supabase
-        .from("students")
-        .select("*")
-        .eq("id", studentId)
-        .eq("hostel_id", currentHostel.id)
-        .maybeSingle();
-
-      const { data: feeData } = await supabase
-        .from("fee_records")
-        .select("*")
-        .eq("hostel_id", currentHostel.id)
-        .eq("student_id", studentId)
-        .eq("billing_month", billingMonthDate);
+      const [{ data: studentData }, { data: feeData }] = await Promise.all([
+        supabase
+          .from("students")
+          .select("*")
+          .eq("id", studentId)
+          .eq("hostel_id", currentHostel.id)
+          .maybeSingle(),
+        supabase
+          .from("fee_records")
+          .select("*")
+          .eq("hostel_id", currentHostel.id)
+          .eq("student_id", studentId)
+          .eq("billing_month", billingMonthDate),
+      ]);
 
       if (studentData) setStudent(studentData);
       const rent = feeData?.find((f) => f.fee_type === "rent") ?? null;

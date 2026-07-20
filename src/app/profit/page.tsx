@@ -49,29 +49,30 @@ export default function ProfitPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    if (!currentHostel) return;
+    if (!currentHostel) {
+      setLoading(false);
+      return;
+    }
 
     const fetchFinancialData = async () => {
       setLoading(true);
 
-      // 1. Fetch 12-month trend
-      const { data: trendData } = await supabase.rpc("get_financial_chart", {
-        p_hostel_id: currentHostel.id,
-        p_months: 12,
-      });
-
-      // 2. Fetch all expenses with category names
-      const { data: expenseData } = await supabase
-        .from("expenses")
-        .select("amount, category_id, expense_categories(name)")
-        .eq("hostel_id", currentHostel.id);
-
-      // 3. Fetch paid/partial fee records for total income
-      const { data: incomeData } = await supabase
-        .from("fee_records")
-        .select("amount")
-        .eq("hostel_id", currentHostel.id)
-        .in("status", ["paid", "partial"]);
+      const [{ data: trendData }, { data: expenseData }, { data: incomeData }] =
+        await Promise.all([
+          supabase.rpc("get_financial_chart", {
+            p_hostel_id: currentHostel.id,
+            p_months: 12,
+          }),
+          supabase
+            .from("expenses")
+            .select("amount, category_id, expense_categories(name)")
+            .eq("hostel_id", currentHostel.id),
+          supabase
+            .from("fee_records")
+            .select("amount")
+            .eq("hostel_id", currentHostel.id)
+            .in("status", ["paid", "partial"]),
+        ]);
 
       if (incomeData) {
         const sumIncome = incomeData.reduce((sum, item) => sum + Number(item.amount), 0);

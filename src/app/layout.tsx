@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: `${process.env.NEXT_PUBLIC_PLATFORM_NAME?.trim() || "Royal Girls Hostels"} - Admin`,
-  description: "Hostel management for a single property",
+  description: "Royal Girls Hostels — admin for students, rooms, fees, and expenses",
 };
 
 export default function RootLayout({

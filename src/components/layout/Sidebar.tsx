@@ -47,8 +47,8 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const brandTitle = currentHostel?.name ?? PLATFORM_NAME;
 
   useEffect(() => {
-    onClose();
-  }, [pathname, onClose]);
+    if (mobileOpen) onClose();
+  }, [pathname, mobileOpen, onClose]);
 
   useEffect(() => {
     if (!mobileOpen) return;

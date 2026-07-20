@@ -37,21 +37,22 @@ export default function ComplaintsPage() {
     if (!currentHostel) return;
     setLoading(true);
 
-    const { data: complaintData } = await supabase
-      .from("complaints")
-      .select("*, students(*)")
-      .eq("hostel_id", currentHostel.id)
-      .order("created_at", { ascending: false });
+    const [complaintsRes, studentsRes] = await Promise.all([
+      supabase
+        .from("complaints")
+        .select("*, students(*)")
+        .eq("hostel_id", currentHostel.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("students")
+        .select("*")
+        .eq("hostel_id", currentHostel.id)
+        .eq("status", "active")
+        .order("full_name", { ascending: true }),
+    ]);
 
-    const { data: studentData } = await supabase
-      .from("students")
-      .select("*")
-      .eq("hostel_id", currentHostel.id)
-      .eq("status", "active")
-      .order("full_name", { ascending: true });
-
-    if (complaintData) setComplaints(complaintData as unknown as Complaint[]);
-    if (studentData) setStudents(studentData);
+    if (complaintsRes.data) setComplaints(complaintsRes.data as unknown as Complaint[]);
+    if (studentsRes.data) setStudents(studentsRes.data);
 
     setLoading(false);
   };

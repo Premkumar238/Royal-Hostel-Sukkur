@@ -7,7 +7,7 @@ import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatCurrency, formatMonth } from "@/lib/utils";
+import { formatCurrency, formatMonth, currentBillingMonthDate } from "@/lib/utils";
 import {
   getMessCategoryBadges,
   getMessCategorySummary,
@@ -36,25 +36,26 @@ export default function MessPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const supabase = createClient();
-  const currentMonth = `${new Date().toISOString().slice(0, 8)}01`;
+  const currentMonth = currentBillingMonthDate();
 
   const fetchData = async () => {
     if (!currentHostel) return;
     setLoading(true);
 
-    const { data: studentData } = await supabase
-      .from("students")
-      .select("*")
-      .eq("hostel_id", currentHostel.id)
-      .eq("status", "active")
-      .order("full_name", { ascending: true });
-
-    const { data: feeData } = await supabase
-      .from("fee_records")
-      .select("*")
-      .eq("hostel_id", currentHostel.id)
-      .eq("fee_type", "mess")
-      .eq("billing_month", currentMonth);
+    const [{ data: studentData }, { data: feeData }] = await Promise.all([
+      supabase
+        .from("students")
+        .select("*")
+        .eq("hostel_id", currentHostel.id)
+        .eq("status", "active")
+        .order("full_name", { ascending: true }),
+      supabase
+        .from("fee_records")
+        .select("*")
+        .eq("hostel_id", currentHostel.id)
+        .eq("fee_type", "mess")
+        .eq("billing_month", currentMonth),
+    ]);
 
     const feeByStudent = new Map(feeData?.map((fee) => [fee.student_id, fee]) ?? []);
 

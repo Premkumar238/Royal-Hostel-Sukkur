@@ -36,3 +36,10 @@ export function calcOccupancyRate(occupied: number, total: number): number {
   if (total === 0) return 0;
   return Math.round((occupied / total) * 100);
 }
+
+/** First day of current month as `YYYY-MM-01` for fee_records.billing_month */
+export function currentBillingMonthDate(reference = new Date()): string {
+  const y = reference.getFullYear();
+  const m = String(reference.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}-01`;
+}
