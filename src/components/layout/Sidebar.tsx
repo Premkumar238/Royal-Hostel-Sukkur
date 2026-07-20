@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHostel } from "@/contexts/HostelContext";
-import { APP_NAME } from "@/lib/appConfig";
+import { PLATFORM_NAME } from "@/lib/appConfig";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -44,7 +44,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const { signOut } = useAuth();
   const { currentHostel } = useHostel();
 
-  const brandTitle = currentHostel?.name ?? APP_NAME;
+  const brandTitle = currentHostel?.name ?? PLATFORM_NAME;
 
   useEffect(() => {
     onClose();

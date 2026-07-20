@@ -10,8 +10,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { SINGLE_HOSTEL_ID } from "@/lib/appConfig";
-import type { Hostel } from "@/types/database";
+import type { Hostel, HostelMember } from "@/types/database";
 
 interface HostelContextType {
   currentHostel: Hostel | null;
@@ -35,20 +34,22 @@ export function HostelProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
 
-    const { data, error } = SINGLE_HOSTEL_ID
-      ? await supabase.from("hostels").select("*").eq("id", SINGLE_HOSTEL_ID).maybeSingle()
-      : await supabase
-          .from("hostels")
-          .select("*")
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+    const { data, error } = await supabase
+      .from("hostel_members")
+      .select("*, hostel:hostels(*)")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
-      console.error("Failed to load hostel:", error.message);
+      console.error("Failed to load hostel membership:", error.message);
       setCurrentHostel(null);
+    } else if (data) {
+      const member = data as HostelMember & { hostel: Hostel | null };
+      setCurrentHostel(member.hostel ?? null);
     } else {
-      setCurrentHostel(data);
+      setCurrentHostel(null);
     }
 
     setLoading(false);

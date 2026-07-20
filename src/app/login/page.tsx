@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
-import { APP_NAME } from "@/lib/appConfig";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  HOSTEL_LOGIN_ACCOUNTS,
+  PLATFORM_NAME,
+  resolveHostelLoginAccount,
+} from "@/lib/appConfig";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
@@ -20,9 +24,18 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const { error: signInError } = await signIn(email, password);
+    const account = resolveHostelLoginAccount(username);
+    if (!account) {
+      setError(
+        `Use an exact hostel name, e.g. "${HOSTEL_LOGIN_ACCOUNTS[0].displayName}".`
+      );
+      setLoading(false);
+      return;
+    }
+
+    const { error: signInError } = await signIn(account.email, password);
     if (signInError) {
-      setError(signInError);
+      setError("Invalid hostel name or password.");
       setLoading(false);
       return;
     }
@@ -31,21 +44,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left — Login Form */}
+    <div className="flex min-h-[100dvh]">
       <div className="flex w-full flex-col justify-between bg-white px-4 py-6 sm:px-8 lg:w-1/2 lg:px-16 xl:px-24">
         <div>
           <div className="mb-10 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
               <Building2 className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-blue-600">{APP_NAME}</span>
+            <span className="text-xl font-bold text-blue-600">{PLATFORM_NAME}</span>
           </div>
 
           <div className="mx-auto max-w-md">
-            <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Hostel login</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Please enter your details.
+              Sign in with your hostel name and password.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
@@ -57,30 +69,29 @@ export default function LoginPage() {
 
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Email or Username
+                  Hostel name (username)
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@example.com"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Royal Girls Hostel 1"
                     required
+                    autoComplete="username"
                     className="w-full rounded-lg border border-gray-200 py-3 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
+                <p className="mt-2 text-xs text-gray-400">
+                  {HOSTEL_LOGIN_ACCOUNTS.map((a) => a.displayName).join(" · ")}
+                </p>
               </div>
 
               <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Password
-                  </label>
-                  <a href="#" className="text-xs font-medium text-blue-600 hover:text-blue-700">
-                    Forgot password?
-                  </a>
-                </div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Password
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
@@ -88,6 +99,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                     className="w-full rounded-lg border border-gray-200 py-3 pl-10 pr-10 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                   <button
@@ -99,16 +111,6 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-600">Remember me for 30 days</span>
-              </label>
 
               <button
                 type="submit"
@@ -123,11 +125,10 @@ export default function LoginPage() {
         </div>
 
         <div className="mx-auto flex w-full max-w-md items-center justify-center text-xs text-gray-400">
-          <span>Secure admin access</span>
+          <span>One account per hostel property</span>
         </div>
       </div>
 
-      {/* Right — Banner */}
       <div className="relative hidden lg:block lg:w-1/2">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&q=80')] bg-cover bg-center opacity-30" />
@@ -135,10 +136,10 @@ export default function LoginPage() {
         <div className="relative flex h-full flex-col justify-end p-12">
           <div className="rounded-xl bg-white/10 p-6 backdrop-blur-sm">
             <p className="text-lg font-medium italic text-white/90">
-              &ldquo;Manage students, rooms, fees, and expenses in one place.&rdquo;
+              &ldquo;Separate logins for each hostel — same management platform.&rdquo;
             </p>
             <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-white/50">
-              — {APP_NAME}
+              — {PLATFORM_NAME}
             </p>
           </div>
         </div>

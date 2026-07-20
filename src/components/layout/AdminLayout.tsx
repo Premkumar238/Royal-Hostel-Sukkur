@@ -36,8 +36,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-md rounded-xl border border-gray-200 bg-white p-6 sm:p-8 text-center shadow-sm">
           <p className="text-sm font-semibold text-gray-900">Hostel not configured</p>
           <p className="mt-2 text-sm text-gray-500">
-            Add one row in the <code className="text-xs">hostels</code> table in Supabase, or set{" "}
-            <code className="text-xs">NEXT_PUBLIC_HOSTEL_ID</code> in your environment file.
+            Add both hostels and link each admin user in{" "}
+            <code className="text-xs">hostel_members</code> (see setup SQL in project docs).
           </p>
         </div>
       </div>

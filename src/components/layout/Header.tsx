@@ -3,6 +3,7 @@
 import { Search, Bell, HelpCircle, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayoutShell } from "@/contexts/LayoutShellContext";
+import { useHostel } from "@/contexts/HostelContext";
 import { Avatar } from "@/components/ui/Avatar";
 
 interface HeaderProps {
@@ -12,6 +13,7 @@ interface HeaderProps {
 
 export function Header({ title, searchPlaceholder = "Search..." }: HeaderProps) {
   const { profile } = useAuth();
+  const { currentHostel } = useHostel();
   const { openMobileNav } = useLayoutShell();
 
   const roleLabel = profile?.role
@@ -70,6 +72,13 @@ export function Header({ title, searchPlaceholder = "Search..." }: HeaderProps) 
           </div>
         </div>
       </div>
+      {currentHostel && (
+        <div className="border-t border-gray-100 bg-gray-50/80 px-4 py-2 sm:px-6">
+          <p className="truncate text-xs font-semibold text-gray-600">
+            Logged in as: <span className="text-gray-900">{currentHostel.name}</span>
+          </p>
+        </div>
+      )}
     </header>
   );
 }
