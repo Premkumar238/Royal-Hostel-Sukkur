@@ -9,7 +9,6 @@ import {
   CreditCard,
   Receipt,
   TrendingUp,
-  Settings,
   LogOut,
   Building2,
   UtensilsCrossed,
@@ -28,7 +27,6 @@ const navItems = [
   { href: "/expenses", label: "Expense Management", icon: Receipt },
   { href: "/police-verification", label: "Police Verification", icon: ShieldCheck },
   { href: "/profit", label: "Profit Dashboard", icon: TrendingUp },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
