@@ -71,6 +71,7 @@ export default function RoomsPage() {
   const [unallocatedStudents, setUnallocatedStudents] = useState<StudentWithPricing[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [selectedBedId, setSelectedBedId] = useState("");
+  const [rentPaidStudentIds, setRentPaidStudentIds] = useState<Set<string>>(new Set());
 
   // Add Room Form fields
   const [roomNumber, setRoomNumber] = useState("");
@@ -140,6 +141,29 @@ export default function RoomsPage() {
 
     if (bedData) {
       setBeds(bedData as unknown as BedWithAllocation[]);
+
+      const billingMonth = `${new Date().toISOString().slice(0, 7)}-01`;
+      const occupiedStudentIds = (bedData as unknown as BedWithAllocation[])
+        .flatMap((bed) => bed.allocations ?? [])
+        .filter((alloc) => alloc.status === "active" && alloc.students?.id)
+        .map((alloc) => alloc.students!.id);
+
+      if (occupiedStudentIds.length > 0) {
+        const { data: paidRentRows } = await supabase
+          .from("fee_records")
+          .select("student_id")
+          .eq("hostel_id", currentHostel!.id)
+          .eq("billing_month", billingMonth)
+          .eq("fee_type", "rent")
+          .eq("status", "paid")
+          .in("student_id", occupiedStudentIds);
+
+        setRentPaidStudentIds(new Set(paidRentRows?.map((row) => row.student_id) ?? []));
+      } else {
+        setRentPaidStudentIds(new Set());
+      }
+    } else {
+      setRentPaidStudentIds(new Set());
     }
 
     if (studentData) {
@@ -619,6 +643,7 @@ export default function RoomsPage() {
                         .map((item) => {
                           const s = item.student!;
                           const rentAmount = Number(s.monthly_rent || 0);
+                          const rentPaidThisMonth = rentPaidStudentIds.has(s.id);
                           return (
                             <div
                               key={item.bedId}
@@ -637,14 +662,21 @@ export default function RoomsPage() {
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleGoToPayRent(s.id)}
-                                  className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 cursor-pointer shadow-xs active:scale-95 transition-all"
-                                >
-                                  <Receipt className="h-3.5 w-3.5" />
-                                  <span>Pay Rent</span>
-                                </button>
+                                {rentAmount > 0 &&
+                                  (rentPaidThisMonth ? (
+                                    <span className="inline-flex items-center rounded-lg bg-green-100 px-3 py-1.5 text-xs font-semibold uppercase text-green-700">
+                                      Paid
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleGoToPayRent(s.id)}
+                                      className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 cursor-pointer shadow-xs active:scale-95 transition-all"
+                                    >
+                                      <Receipt className="h-3.5 w-3.5" />
+                                      <span>Pay Rent</span>
+                                    </button>
+                                  ))}
                                 <button
                                   onClick={() => handleCheckOut(item.allocationId!, item.bedId)}
                                   className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-all"
