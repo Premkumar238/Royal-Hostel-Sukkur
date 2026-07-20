@@ -223,7 +223,6 @@ export async function downloadStudentInvoicePDF(data: StudentInvoicePdfData) {
       margin: { left: 14, right: 14 },
     });
 
-    // @ts-expect-error - autotable plugin
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
