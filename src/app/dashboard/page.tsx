@@ -391,9 +391,9 @@ export default function DashboardPage() {
       )}
 
       {/* FAB */}
-      <button
-        onClick={() => setShowQuickActions(!showQuickActions)}
-        className={`fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all duration-200 active:scale-95 cursor-pointer ${
+          <button
+            onClick={() => setShowQuickActions(!showQuickActions)}
+            className={`fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all duration-200 active:scale-95 cursor-pointer max-lg:bottom-[max(1.5rem,env(safe-area-inset-bottom))] ${
           showQuickActions
             ? "bg-gray-800 hover:bg-gray-900 rotate-90"
             : "bg-blue-600 hover:bg-blue-700 hover:scale-105"

@@ -5,6 +5,12 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
   title: `${process.env.NEXT_PUBLIC_PLATFORM_NAME?.trim() || "Royal Girls Hostels"} - Admin`,
   description: "Royal Girls Hostels — admin for students, rooms, fees, and expenses",

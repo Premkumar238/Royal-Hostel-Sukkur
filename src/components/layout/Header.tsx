@@ -14,7 +14,7 @@ interface HeaderProps {
 export function Header({ title, searchPlaceholder = "Search..." }: HeaderProps) {
   const { profile } = useAuth();
   const { currentHostel } = useHostel();
-  const { openMobileNav, mobileNavOpen } = useLayoutShell();
+  const { toggleMobileNav, mobileNavOpen } = useLayoutShell();
 
   const roleLabel = profile?.role
     ?.replace(/_/g, " ")
@@ -25,8 +25,8 @@ export function Header({ title, searchPlaceholder = "Search..." }: HeaderProps) 
       <div className="flex items-center gap-2 px-3 py-3 sm:gap-4 sm:px-6 sm:py-4">
         <button
           type="button"
-          onClick={openMobileNav}
-          className="-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 active:bg-gray-200 lg:hidden"
+          onClick={() => toggleMobileNav()}
+          className="relative z-40 -ml-1 flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg text-gray-800 hover:bg-gray-100 active:bg-gray-200 lg:hidden"
           aria-label="Open menu"
           aria-expanded={mobileNavOpen}
         >
