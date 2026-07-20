@@ -357,7 +357,7 @@ export default function RoomsPage() {
     <AdminLayout>
       <Header title="Room Inventory" searchPlaceholder="Quick search..." />
 
-      <div className="p-6 space-y-6">
+      <div className="page-shell">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Total Rooms</span>

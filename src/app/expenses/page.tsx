@@ -429,7 +429,7 @@ export default function ExpensesPage() {
     <AdminLayout>
       <Header title="Expense Management" searchPlaceholder="Quick search..." />
 
-      <div className="p-6 space-y-8">
+      <div className="page-shell">
         {/* Staff Section */}
         <section className="space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

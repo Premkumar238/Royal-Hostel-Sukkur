@@ -133,7 +133,7 @@ export default function PoliceVerificationPage() {
     <AdminLayout>
       <Header title="Police Verification" searchPlaceholder="Quick search..." />
 
-      <div className="p-6 max-w-3xl">
+      <div className="page-shell max-w-3xl mx-auto w-full">
         {loading ? (
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />

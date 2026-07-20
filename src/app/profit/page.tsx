@@ -118,7 +118,7 @@ export default function ProfitPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
         </div>
       ) : (
-        <div className="p-6 space-y-6">
+        <div className="page-shell">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
@@ -152,7 +152,7 @@ export default function ProfitPage() {
             <div className="col-span-2 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-gray-900 mb-1">Monthly Financial Trend</h3>
               <p className="text-xs text-gray-400 mb-4">Comparison of monthly income and operating expenses</p>
-              <div className="h-80">
+              <div className="h-56 sm:h-64 lg:h-80 min-h-[14rem]">
                 {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>

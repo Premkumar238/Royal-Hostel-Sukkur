@@ -235,7 +235,7 @@ function PayInvoiceForm() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-4 sm:space-y-6">
       <Link
         href={`/fees?month=${billingMonth}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"

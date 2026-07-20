@@ -33,7 +33,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left — Login Form */}
-      <div className="flex w-full flex-col justify-between bg-white px-8 py-8 lg:w-1/2 lg:px-16 xl:px-24">
+      <div className="flex w-full flex-col justify-between bg-white px-4 py-6 sm:px-8 lg:w-1/2 lg:px-16 xl:px-24">
         <div>
           <div className="mb-10 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">

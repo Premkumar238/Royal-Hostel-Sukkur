@@ -80,7 +80,7 @@ export default function AvailableBedsPage() {
     <AdminLayout>
       <Header title="Available Beds" searchPlaceholder="Quick search..." />
 
-      <div className="p-6 space-y-6">
+      <div className="page-shell">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href="/rooms"

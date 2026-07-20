@@ -422,7 +422,7 @@ export default function StudentsPage() {
     <AdminLayout>
       <Header title="Student Directory" searchPlaceholder="Quick search..." />
 
-      <div className="p-6 space-y-6">
+      <div className="page-shell">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 items-center gap-3">
             <div className="relative flex-1 max-w-md">
