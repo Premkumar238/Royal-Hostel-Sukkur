@@ -282,7 +282,6 @@ function FeesPageContent() {
                   <th className="px-6 py-4">Rent</th>
                   <th className="px-6 py-4">Mess</th>
                   <th className="px-6 py-4">Total</th>
-                  <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Action</th>
                 </tr>
               </thead>
@@ -336,13 +335,6 @@ function FeesPageContent() {
                     </td>
                     <td className="px-6 py-4 font-bold text-gray-900">
                       {formatCurrency(row.total, currentHostel?.currency)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge
-                        status={
-                          row.invoiceStatus === "not_generated" ? "not generated" : row.invoiceStatus
-                        }
-                      />
                     </td>
                     <td className="px-6 py-4 text-right">
                       {canPayRow(row) ? (
