@@ -16,7 +16,7 @@ import {
   getInvoiceTotal,
 } from "@/lib/studentInvoice";
 import { downloadStudentInvoicePDF } from "@/lib/pdfGenerator";
-import type { FeeRecord, Student } from "@/types/database";
+import type { FeeRecord, PaymentMethod, Student } from "@/types/database";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
 
 type IncludeMode = "rent" | "mess" | "both";
@@ -41,6 +41,8 @@ function PayInvoiceForm() {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [includeMode, setIncludeMode] = useState<IncludeMode>("both");
   const [markAsPaid, setMarkAsPaid] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [invoiceNotes, setInvoiceNotes] = useState("");
 
   const billingMonthDate = `${billingMonth}-01`;
 
@@ -75,6 +77,10 @@ function PayInvoiceForm() {
       const mess = feeData?.find((f) => f.fee_type === "mess") ?? null;
       setRentRecord(rent);
       setMessRecord(mess);
+
+      const prior = rent ?? mess;
+      if (prior?.payment_method) setPaymentMethod(prior.payment_method);
+      if (prior?.invoice_notes) setInvoiceNotes(prior.invoice_notes);
 
       const rentAmt = Number(studentData?.monthly_rent || 0);
       const messAmt = studentData && hasAnyMess(studentData) ? getMessTotal(studentData) : 0;
@@ -126,6 +132,15 @@ function PayInvoiceForm() {
     const invoiceCode = existingInvoiceCode ?? generateInvoiceCode(student.student_code, billingMonth);
     const status = markAsPaid ? "paid" : "pending";
     const paidOn = markAsPaid ? paymentDate : null;
+    const notesTrimmed = invoiceNotes.trim() || null;
+
+    const recordFields = {
+      invoice_code: invoiceCode,
+      status,
+      payment_date: paidOn,
+      payment_method: paymentMethod,
+      invoice_notes: notesTrimmed,
+    };
 
     try {
       if (includeRent && canIncludeRent) {
@@ -134,9 +149,7 @@ function PayInvoiceForm() {
             .from("fee_records")
             .update({
               amount: rentAmount,
-              invoice_code: invoiceCode,
-              status,
-              payment_date: paidOn,
+              ...recordFields,
             })
             .eq("id", rentRecord.id);
           if (error) throw error;
@@ -148,9 +161,7 @@ function PayInvoiceForm() {
               billing_month: billingMonthDate,
               amount: rentAmount,
               fee_type: "rent",
-              status,
-              payment_date: paidOn,
-              invoice_code: invoiceCode,
+              ...recordFields,
             },
           ]);
           if (error) throw error;
@@ -163,9 +174,7 @@ function PayInvoiceForm() {
             .from("fee_records")
             .update({
               amount: messAmount,
-              invoice_code: invoiceCode,
-              status,
-              payment_date: paidOn,
+              ...recordFields,
             })
             .eq("id", messRecord.id);
           if (error) throw error;
@@ -177,9 +186,7 @@ function PayInvoiceForm() {
               billing_month: billingMonthDate,
               amount: messAmount,
               fee_type: "mess",
-              status,
-              payment_date: paidOn,
-              invoice_code: invoiceCode,
+              ...recordFields,
             },
           ]);
           if (error) throw error;
@@ -202,6 +209,8 @@ function PayInvoiceForm() {
         total,
         status: markAsPaid ? "paid" : "pending",
         paymentDate: markAsPaid ? formatDate(paymentDate) : null,
+        paymentMethod,
+        invoiceNotes: notesTrimmed,
       });
 
       router.push(`/fees?month=${billingMonth}`);
@@ -378,20 +387,52 @@ function PayInvoiceForm() {
               <span className="text-sm font-medium text-gray-700">Mark as paid now</span>
             </label>
 
-            {markAsPaid && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                  Payment Date
+                  Payment Method
                 </label>
-                <input
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 py-2.5 px-3 text-sm"
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                  className="w-full rounded-lg border border-gray-200 py-2.5 px-3 text-sm cursor-pointer"
                   required
-                />
+                >
+                  <option value="cash">Cash</option>
+                  <option value="online">Online</option>
+                  <option value="bank">Bank</option>
+                </select>
               </div>
-            )}
+              {markAsPaid && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 py-2.5 px-3 text-sm"
+                    required
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                Description / Note
+              </label>
+              <textarea
+                value={invoiceNotes}
+                onChange={(e) => setInvoiceNotes(e.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder="Optional note for this invoice (shown on PDF)"
+                className="w-full rounded-lg border border-gray-200 py-2.5 px-3 text-sm resize-none"
+              />
+              <p className="mt-1 text-xs text-gray-400">{invoiceNotes.length}/500</p>
+            </div>
 
             <button
               type="submit"

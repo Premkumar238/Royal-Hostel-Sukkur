@@ -18,6 +18,7 @@ export type AllocationStatus = "active" | "moving_out" | "checked_out";
 export type FeeStatus = "pending" | "paid" | "partial";
 export type ExpenseStatus = "pending" | "paid" | "due";
 export type FeeType = "rent" | "mess";
+export type PaymentMethod = "cash" | "online" | "bank";
 export type ComplaintStatus = "open" | "completed";
 export type EmployeeRole = "Watchman" | "Cook" | "Cleaner" | "Manager" | "Other";
 export type EmployeeStatus = "active" | "inactive";
@@ -154,6 +155,8 @@ export interface FeeRecord {
   status: FeeStatus;
   fee_type: FeeType;
   invoice_code: string | null;
+  payment_method: PaymentMethod | null;
+  invoice_notes: string | null;
   students?: Student;
 }
 

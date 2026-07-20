@@ -1,5 +1,13 @@
 // Utility to dynamically load jsPDF + jsPDF-AutoTable from CDN and download reports as PDFs
 
+import type { PaymentMethod } from "@/types/database";
+
+export function formatPaymentMethodLabel(method: PaymentMethod): string {
+  if (method === "cash") return "Cash";
+  if (method === "online") return "Online";
+  return "Bank Transfer";
+}
+
 export async function downloadPDF(
   title: string,
   headers: string[],
@@ -100,6 +108,8 @@ export interface StudentInvoicePdfData {
   total: number;
   status: string;
   paymentDate?: string | null;
+  paymentMethod?: PaymentMethod | null;
+  invoiceNotes?: string | null;
 }
 
 export async function downloadStudentInvoicePDF(data: StudentInvoicePdfData) {
@@ -209,6 +219,22 @@ export async function downloadStudentInvoicePDF(data: StudentInvoicePdfData) {
       doc.setFontSize(9);
       doc.setTextColor(22, 101, 52);
       doc.text(`Payment Date: ${data.paymentDate}`, 14, finalY + 6);
+    }
+
+    let notesY = finalY + (data.paymentDate ? 12 : 6);
+    if (data.paymentMethod) {
+      doc.setTextColor(55, 65, 81);
+      doc.text(
+        `Payment Method: ${formatPaymentMethodLabel(data.paymentMethod)}`,
+        14,
+        notesY
+      );
+      notesY += 6;
+    }
+    if (data.invoiceNotes?.trim()) {
+      doc.setTextColor(75, 85, 99);
+      const noteLines = doc.splitTextToSize(`Note: ${data.invoiceNotes.trim()}`, 180);
+      doc.text(noteLines, 14, notesY);
     }
 
     doc.setFontSize(8);
