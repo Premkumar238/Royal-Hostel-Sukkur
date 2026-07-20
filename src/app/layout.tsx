@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: `${process.env.NEXT_PUBLIC_APP_NAME?.trim() || "Royal Hostel Sukkur"} - Admin`,
+  title: `${process.env.NEXT_PUBLIC_APP_NAME?.trim() || "Royal Girls Hostel 1"} - Admin`,
   description: "Hostel management for a single property",
 };
 
