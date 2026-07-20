@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
@@ -34,29 +34,29 @@ export default function AvailableBedsPage() {
 
   const supabase = createClient();
 
+  const fetchRooms = useCallback(async () => {
+    if (!currentHostel) return;
+    setLoading(true);
+
+    const { data } = await supabase
+      .from("rooms")
+      .select("*, beds(id, bed_label, is_available)")
+      .eq("hostel_id", currentHostel.id)
+      .order("room_number", { ascending: true });
+
+    if (data) {
+      const roomsWithVacancy = (data as RoomWithBeds[]).filter((room) =>
+        room.beds?.some((bed) => bed.is_available)
+      );
+      setRooms(roomsWithVacancy);
+    }
+
+    setLoading(false);
+  }, [currentHostel, supabase]);
+
   useEffect(() => {
-    const fetchRooms = async () => {
-      if (!currentHostel) return;
-      setLoading(true);
-
-      const { data } = await supabase
-        .from("rooms")
-        .select("*, beds(id, bed_label, is_available)")
-        .eq("hostel_id", currentHostel.id)
-        .order("room_number", { ascending: true });
-
-      if (data) {
-        const roomsWithVacancy = (data as RoomWithBeds[]).filter((room) =>
-          room.beds?.some((bed) => bed.is_available)
-        );
-        setRooms(roomsWithVacancy);
-      }
-
-      setLoading(false);
-    };
-
     fetchRooms();
-  }, [currentHostel]);
+  }, [fetchRooms]);
 
   const filteredRooms = rooms.filter((room) => {
     const availableLabels = room.beds

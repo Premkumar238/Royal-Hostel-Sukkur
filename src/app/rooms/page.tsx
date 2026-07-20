@@ -8,7 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import type { Room, RoomStatus } from "@/types/database";
 import {
   Search,

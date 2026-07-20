@@ -83,10 +83,10 @@ export async function saveFeeRecord(
     return supabase.from("fee_records").insert([payload]);
   };
 
-  let { error } = await attempt(fullPayload);
-  if (!error) return { ok: true, paymentMetaStored: true };
+  const { error: firstError } = await attempt(fullPayload);
+  if (!firstError) return { ok: true, paymentMetaStored: true };
 
-  const msg = formatSupabaseError(error);
+  const msg = formatSupabaseError(firstError);
   if (isMissingPaymentColumnsError(msg)) {
     const retry = await attempt(basePayload);
     if (!retry.error) {
