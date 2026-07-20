@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -46,9 +46,14 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
   const brandTitle = currentHostel?.name ?? PLATFORM_NAME;
 
+  const pathnameRef = useRef(pathname);
+
+  // Close drawer on route change only (not when opening the menu)
   useEffect(() => {
-    if (mobileOpen) onClose();
-  }, [pathname, mobileOpen, onClose]);
+    if (pathnameRef.current === pathname) return;
+    pathnameRef.current = pathname;
+    onClose();
+  }, [pathname, onClose]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -70,13 +75,13 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-[90] bg-black/50 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-[100dvh] w-[min(100%,17rem)] max-w-[85vw] flex-col border-r border-gray-200 bg-white shadow-xl transition-transform duration-200 ease-out lg:z-30 lg:w-64 lg:max-w-none lg:shadow-none ${
+        className={`fixed left-0 top-0 z-[100] flex h-[100dvh] w-[min(100%,18rem)] max-w-[min(85vw,18rem)] flex-col border-r border-gray-200 bg-white shadow-xl transition-transform duration-200 ease-out lg:z-30 lg:w-64 lg:max-w-none lg:shadow-none ${
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -109,7 +114,8 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                onClick={onClose}
+                className={`flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-gray-100 ${
                   active
                     ? "bg-blue-50 text-blue-700"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
