@@ -9,7 +9,7 @@ import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 import {
   buildInvoiceLineItems,
@@ -17,8 +17,7 @@ import {
   getInvoiceTotal,
 } from "@/lib/studentInvoice";
 import type { FeeRecord, Student } from "@/types/database";
-import { Search, Filter, Download, Calendar, Loader2, FileText } from "lucide-react";
-import { downloadPDF } from "@/lib/pdfGenerator";
+import { Search, Filter, Calendar, Loader2, FileText } from "lucide-react";
 
 interface StudentFeeInvoiceRow {
   student: Student;
@@ -121,46 +120,6 @@ function FeesPageContent() {
     });
   }, [students, feeRecords]);
 
-  const handleDownloadReportPDF = async () => {
-    if (!currentHostel) return;
-    const headers = [
-      "Student",
-      "Code",
-      "Invoice",
-      "Joining Date",
-      "Month",
-      "Rent",
-      "Rent Status",
-      "Mess",
-      "Mess Status",
-      "Total",
-      "Invoice Status",
-    ];
-    const rows = filteredRows.map((row) => [
-      row.student.full_name ?? "—",
-      row.student.student_code,
-      row.invoiceCode ?? "—",
-      row.student.joining_date ? formatDate(row.student.joining_date) : "—",
-      formatMonth(billingMonthDate),
-      `${currentHostel.currency} ${Number(row.student.monthly_rent || 0).toLocaleString()}`,
-      row.rentStatus.toUpperCase(),
-      row.messStatus === "na"
-        ? "—"
-        : `${currentHostel.currency} ${getMessTotal(row.student).toLocaleString()}`,
-      row.messStatus === "na" ? "N/A" : row.messStatus.toUpperCase(),
-      `${currentHostel.currency} ${row.total.toLocaleString()}`,
-      row.invoiceStatus.replace("_", " ").toUpperCase(),
-    ]);
-
-    await downloadPDF(
-      "Fees & Invoices Report",
-      headers,
-      rows,
-      `fees_invoices_${currentHostel.slug}.pdf`,
-      currentHostel.name
-    );
-  };
-
   const filteredRows = studentRows.filter((row) => {
     const displayName = row.student.full_name ?? "";
     const matchesSearch =
@@ -244,14 +203,6 @@ function FeesPageContent() {
             />
           </div>
         </div>
-
-        <button
-          onClick={handleDownloadReportPDF}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer shadow-xs"
-        >
-          <Download className="h-4 w-4" />
-          <span>Report PDF</span>
-        </button>
       </div>
 
       {loading ? (

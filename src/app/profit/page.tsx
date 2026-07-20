@@ -14,7 +14,6 @@ import {
   TrendingDown,
   Percent,
   Loader2,
-  Download,
 } from "lucide-react";
 import {
   BarChart,
@@ -31,7 +30,6 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { downloadPDF } from "@/lib/pdfGenerator";
 
 const PIE_COLORS = ["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe"];
 
@@ -111,30 +109,6 @@ export default function ProfitPage() {
   const netProfit = totalIncome - totalExpense;
   const margin = calcProfitMargin(totalIncome, totalExpense);
 
-  const handleDownloadPDF = async () => {
-    if (!currentHostel) return;
-    const headers = ["Month", "Income", "Expenses", "Net Profit", "Margin"];
-    const rows = chartData.map((pt) => {
-      const net = pt.income - pt.expenses;
-      const marginVal = pt.income === 0 ? 0 : Math.round((net / pt.income) * 100);
-      return [
-        pt.month,
-        `${currentHostel.currency} ${pt.income.toLocaleString()}`,
-        `${currentHostel.currency} ${pt.expenses.toLocaleString()}`,
-        `${currentHostel.currency} ${net.toLocaleString()}`,
-        `${marginVal}%`,
-      ];
-    });
-
-    await downloadPDF(
-      "Financial overview & Profit Report",
-      headers,
-      rows,
-      `profit_report_${currentHostel.slug}.pdf`,
-      currentHostel.name
-    );
-  };
-
   return (
     <AdminLayout>
       <Header title="Profit & Loss Analytics" searchPlaceholder="Quick lookup..." />
@@ -145,17 +119,6 @@ export default function ProfitPage() {
         </div>
       ) : (
         <div className="p-6 space-y-6">
-          {/* Actions Row */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleDownloadPDF}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 active:scale-95 cursor-pointer shadow-xs transition-all"
-            >
-              <Download className="h-4 w-4" />
-              <span>Download PDF</span>
-            </button>
-          </div>
-
           {/* Stats Grid */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard

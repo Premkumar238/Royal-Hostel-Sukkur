@@ -19,13 +19,11 @@ import {
   Receipt,
   User,
   Trash2,
-  Download,
   Users,
   Banknote,
   Loader2,
   UtensilsCrossed,
 } from "lucide-react";
-import { downloadPDF } from "@/lib/pdfGenerator";
 
 interface ExpenseCategory {
   id: string;
@@ -410,26 +408,6 @@ export default function ExpensesPage() {
     else alert(error.message);
   };
 
-  const handleDownloadPDF = async () => {
-    if (!currentHostel) return;
-    const headers = ["Title", "Category", "Vendor", "Date", "Amount"];
-    const rows = filteredExpenses.map((exp) => [
-      exp.title,
-      exp.expense_categories?.name ?? "General",
-      exp.vendor ?? "—",
-      new Date(exp.expense_date).toLocaleDateString(),
-      `${currentHostel.currency} ${Number(exp.amount).toLocaleString()}`,
-    ]);
-
-    await downloadPDF(
-      "Expense Report",
-      headers,
-      rows,
-      `expense_report_${currentHostel.slug}.pdf`,
-      currentHostel.name
-    );
-  };
-
   const filteredExpenses = expenses.filter((e) => {
     const matchesSearch =
       e.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -669,13 +647,6 @@ export default function ExpensesPage() {
               <p className="text-xs text-gray-400 mt-0.5">Track hostel operations and other costs</p>
             </div>
             <div className="flex flex-wrap gap-2.5">
-              <button
-                onClick={handleDownloadPDF}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer shadow-xs"
-              >
-                <Download className="h-4 w-4" />
-                <span>Download PDF</span>
-              </button>
               <button
                 onClick={() => setShowCatModal(true)}
                 className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer shadow-xs"
