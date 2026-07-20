@@ -170,12 +170,12 @@ function FeesPageContent() {
 
     if (statusFilter === "all") return matchesSearch;
 
-    if (statusFilter === "not_generated") {
-      return matchesSearch && row.invoiceStatus === "not_generated";
+    if (statusFilter === "pending") {
+      return matchesSearch && row.invoiceStatus !== "paid";
     }
 
-    if (["pending", "paid", "partial"].includes(statusFilter)) {
-      return matchesSearch && row.invoiceStatus === statusFilter;
+    if (statusFilter === "paid") {
+      return matchesSearch && row.invoiceStatus === "paid";
     }
 
     return matchesSearch;
@@ -234,9 +234,7 @@ function FeesPageContent() {
               className="appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-8 text-sm font-medium text-gray-600 focus:border-blue-400 focus:outline-none cursor-pointer"
             >
               <option value="all">All Statuses</option>
-              <option value="not_generated">Not Generated</option>
               <option value="pending">Pending</option>
-              <option value="partial">Partial</option>
               <option value="paid">Paid</option>
             </select>
             <Filter className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
