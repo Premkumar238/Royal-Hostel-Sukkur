@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 import {
   buildInvoiceLineItems,
@@ -17,7 +18,7 @@ import {
   getInvoiceTotal,
 } from "@/lib/studentInvoice";
 import type { FeeRecord, Student } from "@/types/database";
-import { Search, Filter, Calendar, Loader2, FileText } from "lucide-react";
+import { Search, Filter, Loader2, FileText } from "lucide-react";
 
 interface StudentFeeInvoiceRow {
   student: Student;
@@ -193,15 +194,11 @@ function FeesPageContent() {
             </select>
             <Filter className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="month"
-              value={billingMonth}
-              onChange={(e) => setBillingMonth(e.target.value)}
-              className="rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none cursor-pointer"
-            />
-          </div>
+          <MonthPicker
+            id="fees-billing-month"
+            value={billingMonth}
+            onChange={setBillingMonth}
+          />
         </div>
       </div>
 

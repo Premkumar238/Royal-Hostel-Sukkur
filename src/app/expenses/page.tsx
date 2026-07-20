@@ -7,6 +7,7 @@ import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import { STAFF_ROLES, ensureStaffCategory, isSalaryPaidForMonth } from "@/lib/staffUtils";
 import { createLinkedMessExpenseRecord } from "@/lib/messExpenseUtils";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
 import type { Employee, EmployeeRole, Expense, MessExpense } from "@/types/database";
 import {
@@ -541,15 +542,11 @@ export default function ExpensesPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="month"
-                  value={messBillingMonth}
-                  onChange={(e) => setMessBillingMonth(e.target.value)}
-                  className="rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none cursor-pointer"
-                />
-              </div>
+              <MonthPicker
+                id="mess-billing-month"
+                value={messBillingMonth}
+                onChange={setMessBillingMonth}
+              />
               <button
                 onClick={openInitialMessModal}
                 className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 cursor-pointer"
