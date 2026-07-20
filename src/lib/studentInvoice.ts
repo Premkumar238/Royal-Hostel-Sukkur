@@ -26,14 +26,22 @@ export function getCombinedInvoiceStatus(
 }
 
 export function buildInvoiceLineItems(student: Student): { description: string; amount: number }[] {
+  return buildInvoiceLineItemsForSelection(student, true, true);
+}
+
+export function buildInvoiceLineItemsForSelection(
+  student: Student,
+  includeRent: boolean,
+  includeMess: boolean
+): { description: string; amount: number }[] {
   const items: { description: string; amount: number }[] = [];
 
   const rent = Number(student.monthly_rent || 0);
-  if (rent > 0) {
+  if (includeRent && rent > 0) {
     items.push({ description: "Monthly Room Rent", amount: rent });
   }
 
-  if (hasAnyMess(student)) {
+  if (includeMess && hasAnyMess(student)) {
     const messTotal = getMessTotal(student);
     if (messTotal > 0) {
       const detail = getMessCategorySummary(student);
