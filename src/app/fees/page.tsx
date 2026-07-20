@@ -185,7 +185,6 @@ function FeesPageContent() {
   const pendingMessCount = studentRows.filter(
     (row) => row.messStatus !== "na" && row.messStatus !== "paid"
   ).length;
-  const notGeneratedCount = studentRows.filter((row) => row.invoiceStatus === "not_generated" && row.total > 0).length;
 
   const canPayRow = (row: StudentFeeInvoiceRow) => {
     if (row.total <= 0) return false;
@@ -196,7 +195,7 @@ function FeesPageContent() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Active Students</span>
           <p className="mt-1 text-2xl font-bold text-gray-900">{students.length}</p>
@@ -208,10 +207,6 @@ function FeesPageContent() {
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pending Mess</span>
           <p className="mt-1 text-2xl font-bold text-emerald-700">{pendingMessCount}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Invoices Not Generated</span>
-          <p className="mt-1 text-2xl font-bold text-blue-600">{notGeneratedCount}</p>
         </div>
       </div>
 
