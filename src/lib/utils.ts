@@ -1,5 +1,8 @@
-export function formatCurrency(amount: number): string {
-  return `Rs. ${amount.toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+export function formatCurrency(amount: number): string;
+export function formatCurrency(amount: number, currency: string): string;
+export function formatCurrency(amount: number, currency = "Rs."): string {
+  const label = currency === "PKR" ? "Rs." : currency;
+  return `${label} ${amount.toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 export function getInitials(name: string): string {
