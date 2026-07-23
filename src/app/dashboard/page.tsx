@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
@@ -24,6 +25,7 @@ import {
   X,
   UserPlus,
   Receipt,
+  ShieldCheck,
 } from "lucide-react";
 import {
   LineChart,
@@ -165,6 +167,16 @@ export default function DashboardPage() {
             icon={TrendingUp}
             subtitle={`Profit Margin ${profitMargin}%`}
           />
+        </div>
+
+        <div className="flex flex-wrap gap-2.5">
+          <Link
+            href="/police-verification"
+            className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-800 shadow-sm transition-colors hover:bg-indigo-100"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Police Verification
+          </Link>
         </div>
 
         {/* Charts Row */}
@@ -384,6 +396,15 @@ export default function DashboardPage() {
                   <Receipt className="h-4 w-4" />
                 </div>
                 <span>Log Expense</span>
+              </a>
+              <a
+                href="/police-verification"
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-50 text-indigo-600">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <span>Police Verification</span>
               </a>
             </div>
           </div>

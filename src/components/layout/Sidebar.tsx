@@ -14,7 +14,6 @@ import {
   LogOut,
   Building2,
   MessageSquareWarning,
-  ShieldCheck,
   X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,7 +27,6 @@ const navItems = [
   { href: "/fees", label: "Fees & Invoices", icon: CreditCard },
   { href: "/complaints", label: "Complaints", icon: MessageSquareWarning },
   { href: "/expenses", label: "Expenses", icon: Receipt },
-  { href: "/police-verification", label: "Police Verification", icon: ShieldCheck },
   { href: "/profit", label: "Profit Dashboard", icon: TrendingUp },
 ];
 
