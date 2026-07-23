@@ -26,6 +26,7 @@ import {
   UserPlus,
   Receipt,
   ShieldCheck,
+  PiggyBank,
 } from "lucide-react";
 import {
   LineChart,
@@ -48,6 +49,8 @@ export default function DashboardPage() {
   const [chartData, setChartData] = useState<FinancialChartPoint[]>([]);
   const [recentFees, setRecentFees] = useState<FeeRecord[]>([]);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
+  const [totalBudget, setTotalBudget] = useState(0);
+  const [initialBudget, setInitialBudget] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const supabase = createClient();
@@ -61,7 +64,7 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setLoading(true);
 
-      const [statsRes, chartRes, feesRes, expensesRes] = await Promise.all([
+      const [statsRes, chartRes, feesRes, expensesRes, cashRes] = await Promise.all([
         supabase.rpc("get_dashboard_stats", { p_hostel_id: currentHostel.id }),
         supabase.rpc("get_financial_chart", {
           p_hostel_id: currentHostel.id,
@@ -79,12 +82,31 @@ export default function DashboardPage() {
           .eq("hostel_id", currentHostel.id)
           .order("expense_date", { ascending: false })
           .limit(5),
+        supabase
+          .from("cash_budgets")
+          .select("amount, entry_date, created_at")
+          .eq("hostel_id", currentHostel.id),
       ]);
 
       if (statsRes.data) setStats(statsRes.data as unknown as DashboardStats);
       if (chartRes.data) setChartData(chartRes.data as unknown as FinancialChartPoint[]);
       if (feesRes.data) setRecentFees(feesRes.data as FeeRecord[]);
       if (expensesRes.data) setRecentExpenses(expensesRes.data as Expense[]);
+
+      if (cashRes.data && cashRes.data.length > 0) {
+        const rows = cashRes.data as { amount: number; entry_date: string; created_at: string }[];
+        const total = rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        setTotalBudget(total);
+        const oldest = [...rows].sort((a, b) => {
+          const byDate = new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime();
+          if (byDate !== 0) return byDate;
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        })[0];
+        setInitialBudget(Number(oldest.amount || 0));
+      } else {
+        setTotalBudget(0);
+        setInitialBudget(null);
+      }
 
       setLoading(false);
     };
@@ -135,7 +157,7 @@ export default function DashboardPage() {
 
       <div className="page-shell page-shell--fab">
         {/* Stats Row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <StatCard
             title="Total Students"
             value={String(stats?.active_students ?? 0)}
@@ -155,6 +177,18 @@ export default function DashboardPage() {
               />
             </div>
           </StatCard>
+          <Link href="/cash" className="block transition-opacity hover:opacity-95">
+            <StatCard
+              title="Budget"
+              value={formatCurrency(totalBudget, currentHostel.currency)}
+              icon={PiggyBank}
+              subtitle={
+                initialBudget !== null
+                  ? `Initial investment ${formatCurrency(initialBudget, currentHostel.currency)}`
+                  : "Add business investment in Cash"
+              }
+            />
+          </Link>
           <StatCard
             title="Monthly Income"
             value={formatCurrency(stats?.monthly_income ?? 0, currentHostel.currency)}

@@ -1,0 +1,290 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import { Header } from "@/components/layout/Header";
+import { useHostel } from "@/contexts/HostelContext";
+import { createClient } from "@/lib/supabase/client";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import type { CashBudget } from "@/types/database";
+import {
+  Calendar,
+  DollarSign,
+  Loader2,
+  PiggyBank,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
+
+export default function CashPage() {
+  const { currentHostel } = useHostel();
+  const [entries, setEntries] = useState<CashBudget[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formLoading, setFormLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const [amount, setAmount] = useState<number | "">("");
+  const [entryDate, setEntryDate] = useState(new Date().toISOString().split("T")[0]);
+  const [description, setDescription] = useState("");
+
+  const supabase = createClient();
+
+  const fetchEntries = useCallback(async () => {
+    if (!currentHostel) return;
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("cash_budgets")
+      .select("*")
+      .eq("hostel_id", currentHostel.id)
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (!error && data) setEntries(data as CashBudget[]);
+    setLoading(false);
+  }, [currentHostel, supabase]);
+
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
+
+  const totalBudget = useMemo(
+    () => entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0),
+    [entries]
+  );
+
+  const initialEntry = useMemo(() => {
+    if (entries.length === 0) return null;
+    return [...entries].sort((a, b) => {
+      const byDate = new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime();
+      if (byDate !== 0) return byDate;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    })[0];
+  }, [entries]);
+
+  const openAddModal = () => {
+    setAmount("");
+    setEntryDate(new Date().toISOString().split("T")[0]);
+    setDescription(entries.length === 0 ? "Initial business investment" : "");
+    setShowModal(true);
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentHostel) return;
+
+    const budgetAmount = Number(amount);
+    if (!budgetAmount || budgetAmount <= 0) {
+      alert("Enter a valid amount.");
+      return;
+    }
+
+    setFormLoading(true);
+
+    const { error } = await supabase.from("cash_budgets").insert([
+      {
+        hostel_id: currentHostel.id,
+        amount: budgetAmount,
+        entry_date: entryDate,
+        description: description.trim() || null,
+      },
+    ]);
+
+    setFormLoading(false);
+
+    if (!error) {
+      setShowModal(false);
+      fetchEntries();
+    } else {
+      alert(error.message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Remove this budget entry?")) return;
+    const { error } = await supabase.from("cash_budgets").delete().eq("id", id);
+    if (!error) fetchEntries();
+    else alert(error.message);
+  };
+
+  return (
+    <AdminLayout>
+      <Header title="Cash" searchPlaceholder="Quick search..." />
+
+      <div className="page-shell">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Business Budget</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Add money invested into the business — shown as Budget on the dashboard
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            Add Budget
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 shadow-sm">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700">
+              Total Budget
+            </span>
+            <p className="mt-1 text-2xl font-bold text-violet-900">
+              {formatCurrency(totalBudget, currentHostel?.currency)}
+            </p>
+            <p className="text-xs text-violet-700/80 mt-1">All investment added to the business</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+              Initial Investment
+            </span>
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              {initialEntry
+                ? formatCurrency(initialEntry.amount, currentHostel?.currency)
+                : "Not set"}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {initialEntry ? formatDate(initialEntry.entry_date) : "Add your first budget entry"}
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex h-64 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
+            <PiggyBank className="mx-auto h-8 w-8 text-gray-300 mb-3" />
+            <p className="text-sm font-medium text-gray-500">No budget added yet</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Add your initial business investment to track it on the dashboard.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">Description</th>
+                    <th className="px-6 py-4 text-right">Amount</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {entries.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 text-gray-600 whitespace-nowrap">
+                        {formatDate(entry.entry_date)}
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">
+                        {entry.description || "Business investment"}
+                      </td>
+                      <td className="px-6 py-4 text-right font-semibold text-violet-700">
+                        {formatCurrency(entry.amount, currentHostel?.currency)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(entry.id)}
+                          className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowModal(false)} />
+          <div className="modal-panel max-w-md">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+            <h3 className="text-base font-bold text-gray-900 mb-1">Add Budget</h3>
+            <p className="text-xs text-gray-400 mb-6">Record investment added to the business</p>
+
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Amount
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm focus:border-blue-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Date
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="date"
+                    required
+                    value={entryDate}
+                    onChange={(e) => setEntryDate(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm focus:border-blue-400 focus:outline-none cursor-pointer"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g. Initial business investment"
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2.5 px-3 text-sm focus:border-blue-400 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={formLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
+              >
+                {formLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <PiggyBank className="h-4 w-4" />
+                    Save Budget
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </AdminLayout>
+  );
+}

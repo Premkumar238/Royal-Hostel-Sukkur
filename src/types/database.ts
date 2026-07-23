@@ -186,6 +186,15 @@ export interface PoliceVerification {
   updated_at: string;
 }
 
+export interface CashBudget {
+  id: string;
+  hostel_id: string;
+  amount: number;
+  entry_date: string;
+  description: string | null;
+  created_at: string;
+}
+
 export interface DashboardStats {
   total_students: number;
   active_students: number;
@@ -271,6 +280,12 @@ export type Database = {
         Row: PoliceVerification;
         Insert: Partial<PoliceVerification>;
         Update: Partial<PoliceVerification>;
+        Relationships: [];
+      };
+      cash_budgets: {
+        Row: CashBudget;
+        Insert: Partial<CashBudget>;
+        Update: Partial<CashBudget>;
         Relationships: [];
       };
     };
