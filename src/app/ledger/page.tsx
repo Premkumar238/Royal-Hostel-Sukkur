@@ -10,10 +10,12 @@ import {
   ensurePayoutCategory,
   PAYOUT_RECIPIENTS,
   payoutTitle,
+  fetchSharedLedgerPayments,
+  deleteSharedLedgerPayment,
   type PayoutRecipient,
+  type SharedLedgerPayment,
 } from "@/lib/payoutUtils";
 import { formatCurrency, formatDate, formatMonth, currentYearMonth } from "@/lib/utils";
-import type { Expense, Hostel } from "@/types/database";
 import {
   Banknote,
   Calendar,
@@ -33,12 +35,13 @@ function monthDateRange(yearMonth: string) {
   };
 }
 
-type LedgerExpense = Expense & { hostels?: Pick<Hostel, "name"> | null };
+type LedgerExpense = SharedLedgerPayment;
 
 export default function LedgerPage() {
   const { currentHostel } = useHostel();
   const [payments, setPayments] = useState<LedgerExpense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [billingMonth, setBillingMonth] = useState(currentYearMonth());
 
@@ -56,15 +59,15 @@ export default function LedgerPage() {
 
     const { start, end } = monthDateRange(billingMonth);
 
-    const { data } = await supabase
-      .from("expenses")
-      .select("*, hostels(name)")
-      .in("vendor", [...PAYOUT_RECIPIENTS])
-      .gte("expense_date", start)
-      .lte("expense_date", end)
-      .order("expense_date", { ascending: false });
+    const { data, error } = await fetchSharedLedgerPayments(supabase, start, end);
 
-    if (data) setPayments(data as LedgerExpense[]);
+    if (error) {
+      setFetchError(error);
+      setPayments([]);
+    } else {
+      setFetchError(null);
+      setPayments(data);
+    }
     setLoading(false);
   }, [billingMonth, currentHostel, supabase]);
 
@@ -133,9 +136,9 @@ export default function LedgerPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this payment from the ledger?")) return;
-    const { error } = await supabase.from("expenses").delete().eq("id", id);
+    const error = await deleteSharedLedgerPayment(supabase, id);
     if (!error) fetchPayments();
-    else alert(error.message);
+    else alert(error);
   };
 
   return (
@@ -157,6 +160,16 @@ export default function LedgerPage() {
             className="shrink-0 sm:w-auto"
           />
         </div>
+
+        {fetchError && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+            <p className="font-semibold">Could not load shared ledger</p>
+            <p className="mt-1">{fetchError}</p>
+            <p className="mt-1 text-amber-800">
+              Run the shared ledger SQL in Supabase (migrations 20260723130000 and 20260723140000).
+            </p>
+          </div>
+        )}
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
@@ -232,9 +245,9 @@ export default function LedgerPage() {
                                     {payment.description}
                                   </p>
                                 )}
-                                {payment.hostels?.name && payment.hostel_id !== currentHostel?.id && (
+                                {payment.hostel_name && payment.hostel_id !== currentHostel?.id && (
                                   <p className="text-[10px] font-medium text-blue-600 mt-0.5">
-                                    Recorded by {payment.hostels.name}
+                                    Recorded by {payment.hostel_name}
                                   </p>
                                 )}
                               </td>
