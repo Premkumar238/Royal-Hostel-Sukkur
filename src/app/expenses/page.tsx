@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { STAFF_ROLES, ensureStaffCategory, isSalaryPaidForMonth } from "@/lib/staffUtils";
 import { createLinkedMessExpenseRecord } from "@/lib/messExpenseUtils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
-import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
+import { formatCurrency, formatDate, formatMonth, currentYearMonth } from "@/lib/utils";
 import type { Employee, EmployeeRole, Expense, MessExpense } from "@/types/database";
 import {
   Search,
@@ -61,7 +61,7 @@ export default function ExpensesPage() {
   const [employeeSalary, setEmployeeSalary] = useState<number | "">("");
   const [employeePhone, setEmployeePhone] = useState("");
 
-  const [messBillingMonth, setMessBillingMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [messBillingMonth, setMessBillingMonth] = useState(currentYearMonth());
   const [initialMessAmount, setInitialMessAmount] = useState<number | "">("");
   const [initialMessDescription, setInitialMessDescription] = useState("");
   const [dailyMessAmount, setDailyMessAmount] = useState<number | "">("");
@@ -257,7 +257,7 @@ export default function ExpensesPage() {
   const messGrandTotal =
     Number(initialMessExpense?.amount || 0) + dailyMessTotal;
 
-  const salaryMonth = new Date().toISOString().slice(0, 7);
+  const salaryMonth = currentYearMonth();
 
   const openInitialMessModal = () => {
     setInitialMessAmount(initialMessExpense?.amount ?? "");

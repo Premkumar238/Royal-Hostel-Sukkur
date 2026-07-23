@@ -9,7 +9,7 @@ import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, currentYearMonth } from "@/lib/utils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 import {
@@ -40,7 +40,7 @@ function FeesPageContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [billingMonth, setBillingMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [billingMonth, setBillingMonth] = useState(currentYearMonth());
 
   const supabase = createClient();
   const billingMonthDate = `${billingMonth}-01`;

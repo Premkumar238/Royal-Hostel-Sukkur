@@ -8,6 +8,7 @@ import {
   useLayoutShell,
 } from "@/contexts/LayoutShellContext";
 import { Loader2 } from "lucide-react";
+import { MonthCloseRunner } from "@/components/MonthCloseRunner";
 
 function AdminShell({ children }: { children: React.ReactNode }) {
   const { mobileNavOpen, closeMobileNav } = useLayoutShell();
@@ -49,6 +50,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <LayoutShellProvider>
+      <MonthCloseRunner />
       <AdminShell>{children}</AdminShell>
     </LayoutShellProvider>
   );

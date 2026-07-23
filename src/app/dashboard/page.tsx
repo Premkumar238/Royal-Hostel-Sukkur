@@ -14,7 +14,10 @@ import {
   calcProfitMargin,
   calcOccupancyRate,
   formatDate,
+  formatMonth,
+  currentBillingMonthDate,
 } from "@/lib/utils";
+import type { MonthCloseResult } from "@/lib/monthCloseUtils";
 import { calculateBusinessBudget } from "@/lib/cashUtils";
 import type { CashBudget, DashboardStats, FinancialChartPoint, FeeRecord, Expense } from "@/types/database";
 import {
@@ -56,6 +59,8 @@ export default function DashboardPage() {
   const [remainingAfterStart, setRemainingAfterStart] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [monthCloseNotice, setMonthCloseNotice] = useState<MonthCloseResult | null>(null);
+  const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const supabase = createClient();
 
   useEffect(() => {
@@ -119,7 +124,18 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [currentHostel, supabase]);
+  }, [currentHostel, supabase, dataRefreshKey]);
+
+  useEffect(() => {
+    const onMonthClosed = (event: Event) => {
+      const detail = (event as CustomEvent<MonthCloseResult>).detail;
+      setMonthCloseNotice(detail);
+      setDataRefreshKey((key) => key + 1);
+    };
+
+    window.addEventListener("hostel:month-closed", onMonthClosed);
+    return () => window.removeEventListener("hostel:month-closed", onMonthClosed);
+  }, []);
 
   const netProfit = stats ? stats.monthly_income - stats.monthly_expenses : 0;
   const profitMargin = stats ? calcProfitMargin(stats.monthly_income, stats.monthly_expenses) : 0;
@@ -163,6 +179,24 @@ export default function DashboardPage() {
       <Header title="Dashboard" searchPlaceholder="Search student or room..." />
 
       <div className="page-shell page-shell--fab">
+        {monthCloseNotice && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <p className="font-semibold">New month started — system reset for {formatMonth(monthCloseNotice.current_month)}</p>
+            <p className="mt-1 text-xs text-emerald-800">
+              Previous month closed. Students, rooms, budget, ledger, and police verification are unchanged.
+              Fee invoices and staff salaries are ready for the new month.
+              {monthCloseNotice.fees_created > 0
+                ? ` ${monthCloseNotice.fees_created} pending fee record(s) created.`
+                : ""}
+            </p>
+          </div>
+        )}
+
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-xs text-gray-500">
+          Operating month: <strong className="text-gray-800">{formatMonth(currentBillingMonthDate())}</strong>
+          · Income, expenses, and pending fees show this month only · Budget and ledger are cumulative
+        </div>
+
         {/* Stats Row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <StatCard

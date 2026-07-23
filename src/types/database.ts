@@ -34,6 +34,7 @@ export interface Hostel {
   currency: string;
   timezone: string;
   subscription_status: string;
+  last_closed_month: string | null;
   created_at: string;
 }
 
@@ -214,6 +215,21 @@ export interface FinancialChartPoint {
   month: string;
   income: number;
   expenses: number;
+}
+
+export interface MonthClosure {
+  id: string;
+  hostel_id: string;
+  billing_month: string;
+  closed_at: string;
+  closed_by: string | null;
+  snapshot: {
+    monthly_income?: number;
+    monthly_expenses?: number;
+    pending_fees?: number;
+    net_profit?: number;
+  };
+  created_at: string;
 }
 
 export type Database = {
