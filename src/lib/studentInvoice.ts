@@ -1,5 +1,5 @@
 import type { FeeRecord, Student } from "@/types/database";
-import { getMessCategorySummary, getMessTotal, hasAnyMess } from "@/lib/messUtils";
+import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 
 export function generateInvoiceCode(studentCode: string, billingMonth: string): string {
   const monthPart = billingMonth.slice(0, 7).replace("-", "");
@@ -44,9 +44,8 @@ export function buildInvoiceLineItemsForSelection(
   if (includeMess && hasAnyMess(student)) {
     const messTotal = getMessTotal(student);
     if (messTotal > 0) {
-      const detail = getMessCategorySummary(student);
       items.push({
-        description: detail !== "—" ? `Mess Fee (${detail})` : "Mess Fee",
+        description: "Mess Fee",
         amount: messTotal,
       });
     }

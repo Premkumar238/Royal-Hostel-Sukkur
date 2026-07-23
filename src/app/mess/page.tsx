@@ -9,8 +9,6 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency, formatMonth, currentBillingMonthDate } from "@/lib/utils";
 import {
-  getMessCategoryBadges,
-  getMessCategorySummary,
   getMessTotal,
   hasAnyMess,
 } from "@/lib/messUtils";
@@ -186,7 +184,7 @@ export default function MessPage() {
             <Utensils className="mx-auto h-8 w-8 text-gray-300 mb-3" />
             <p className="text-sm font-medium text-gray-500">No mess-included students found</p>
             <p className="text-xs text-gray-400 mt-1">
-              Select breakfast, lunch, or dinner categories when adding a student.
+              Enable mess and set a monthly mess fee when adding a student.
             </p>
           </div>
         ) : (
@@ -196,7 +194,6 @@ export default function MessPage() {
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold uppercase tracking-wider text-gray-400">
                     <th className="px-6 py-4">Student</th>
-                    <th className="px-6 py-4">Categories</th>
                     <th className="px-6 py-4">Mess Fee</th>
                     <th className="px-6 py-4">Billing Month</th>
                     <th className="px-6 py-4">Status</th>
@@ -206,7 +203,6 @@ export default function MessPage() {
                 <tbody className="divide-y divide-gray-100">
                   {filteredStudents.map((student) => {
                     const feeStatus = student.currentFee?.status ?? "pending";
-                    const badges = getMessCategoryBadges(student);
 
                     return (
                       <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
@@ -224,19 +220,6 @@ export default function MessPage() {
                               <span className="text-xs text-gray-400">{student.student_code}</span>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1.5 mb-1">
-                            {badges.map((badge) => (
-                              <span
-                                key={badge}
-                                className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold uppercase text-green-700"
-                              >
-                                {badge}
-                              </span>
-                            ))}
-                          </div>
-                          <span className="text-xs text-gray-500">{getMessCategorySummary(student)}</span>
                         </td>
                         <td className="px-6 py-4 font-semibold text-emerald-700">
                           {formatCurrency(getMessTotal(student))}

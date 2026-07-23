@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import { uploadStudentDocument } from "@/lib/studentUpload";
-import { getMessCategorySummary, getMessTotal, hasAnyMess } from "@/lib/messUtils";
+import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency } from "@/lib/utils";
@@ -166,12 +166,7 @@ export default function StudentsPage() {
   const [joiningDate, setJoiningDate] = useState("");
   const [monthlyRent, setMonthlyRent] = useState<number | "">("");
   const [hasMess, setHasMess] = useState(false);
-  const [hasBreakfast, setHasBreakfast] = useState(false);
-  const [hasLunch, setHasLunch] = useState(false);
-  const [hasDinner, setHasDinner] = useState(false);
-  const [breakfastFee, setBreakfastFee] = useState<number | "">("");
-  const [lunchFee, setLunchFee] = useState<number | "">("");
-  const [dinnerFee, setDinnerFee] = useState<number | "">("");
+  const [messFee, setMessFee] = useState<number | "">("");
 
   const [studentImageFile, setStudentImageFile] = useState<File | null>(null);
   const [studentCnicFile, setStudentCnicFile] = useState<File | null>(null);
@@ -229,12 +224,7 @@ export default function StudentsPage() {
     setJoiningDate("");
     setMonthlyRent("");
     setHasMess(false);
-    setHasBreakfast(false);
-    setHasLunch(false);
-    setHasDinner(false);
-    setBreakfastFee("");
-    setLunchFee("");
-    setDinnerFee("");
+    setMessFee("");
     setStudentImageFile(null);
     setStudentCnicFile(null);
     setFatherCnicFile(null);
@@ -276,12 +266,7 @@ export default function StudentsPage() {
     setJoiningDate(student.joining_date ?? "");
     setMonthlyRent(student.monthly_rent ?? "");
     setHasMess(hasAnyMess(student));
-    setHasBreakfast(student.has_breakfast ?? false);
-    setHasLunch(student.has_lunch ?? false);
-    setHasDinner(student.has_dinner ?? false);
-    setBreakfastFee(student.breakfast_fee ?? "");
-    setLunchFee(student.lunch_fee ?? "");
-    setDinnerFee(student.dinner_fee ?? "");
+    setMessFee(hasAnyMess(student) ? getMessTotal(student) : "");
     setStudentImageFile(null);
     setStudentCnicFile(null);
     setFatherCnicFile(null);
@@ -297,11 +282,7 @@ export default function StudentsPage() {
     setFormLoading(true);
 
     const selectedClassification = classificationOptions.find((option) => option.value === classification);
-    const messTotal =
-      (hasBreakfast ? Number(breakfastFee || 0) : 0) +
-      (hasLunch ? Number(lunchFee || 0) : 0) +
-      (hasDinner ? Number(dinnerFee || 0) : 0);
-    const includesMess = hasMess && (hasBreakfast || hasLunch || hasDinner);
+    const messAmount = hasMess ? Number(messFee || 0) : 0;
 
     const payload = {
       hostel_id: currentHostel.id,
@@ -327,14 +308,14 @@ export default function StudentsPage() {
       emergency_contact_2: emergencyContact2.trim() || null,
       email: email.trim() || null,
       monthly_rent: monthlyRent === "" ? 0 : Number(monthlyRent),
-      has_mess: includesMess,
-      mess_fee: includesMess ? messTotal : 0,
-      has_breakfast: includesMess && hasBreakfast,
-      has_lunch: includesMess && hasLunch,
-      has_dinner: includesMess && hasDinner,
-      breakfast_fee: includesMess && hasBreakfast ? Number(breakfastFee || 0) : 0,
-      lunch_fee: includesMess && hasLunch ? Number(lunchFee || 0) : 0,
-      dinner_fee: includesMess && hasDinner ? Number(dinnerFee || 0) : 0,
+      has_mess: hasMess,
+      mess_fee: messAmount,
+      has_breakfast: false,
+      has_lunch: false,
+      has_dinner: false,
+      breakfast_fee: 0,
+      lunch_fee: 0,
+      dinner_fee: 0,
     };
 
     try {
@@ -510,12 +491,9 @@ export default function StudentsPage() {
                       </td>
                       <td className="px-6 py-4 text-gray-600">
                         {hasAnyMess(student) ? (
-                          <div>
-                            <span className="font-semibold text-green-700 block">
-                              {formatCurrency(getMessTotal(student))}
-                            </span>
-                            <span className="text-[11px] text-gray-400">{getMessCategorySummary(student)}</span>
-                          </div>
+                          <span className="font-semibold text-green-700">
+                            {formatCurrency(getMessTotal(student))}
+                          </span>
                         ) : (
                           <span className="text-gray-400 text-xs">No Mess</span>
                         )}
@@ -884,99 +862,47 @@ export default function StudentsPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center gap-1">
-                    <Utensils className="h-3.5 w-3.5 text-green-600" /> Food / Mess
-                  </label>
-                  <label className="flex h-11 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasMess}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setHasMess(checked);
-                        if (!checked) {
-                          setHasBreakfast(false);
-                          setHasLunch(false);
-                          setHasDinner(false);
-                          setBreakfastFee("");
-                          setLunchFee("");
-                          setDinnerFee("");
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                    />
-                    <span className="text-xs font-semibold text-gray-600 select-none">Includes Mess</span>
-                  </label>
-                </div>
-
-                {hasMess && (
-                  <div className="space-y-3 rounded-lg border border-green-100 bg-green-50/40 p-4">
-                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                      Mess Categories
-                    </p>
-                    {[
-                      {
-                        label: "Breakfast",
-                        checked: hasBreakfast,
-                        setChecked: setHasBreakfast,
-                        fee: breakfastFee,
-                        setFee: setBreakfastFee,
-                      },
-                      {
-                        label: "Lunch",
-                        checked: hasLunch,
-                        setChecked: setHasLunch,
-                        fee: lunchFee,
-                        setFee: setLunchFee,
-                      },
-                      {
-                        label: "Dinner",
-                        checked: hasDinner,
-                        setChecked: setHasDinner,
-                        fee: dinnerFee,
-                        setFee: setDinnerFee,
-                      },
-                    ].map((category) => (
-                      <div key={category.label} className="grid grid-cols-1 gap-3 items-center sm:grid-cols-[1fr_140px]">
-                        <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={category.checked}
-                            onChange={(e) => category.setChecked(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 text-green-600"
-                          />
-                          <span className="text-sm font-medium text-gray-700">{category.label}</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 select-none">
-                            Rs.
-                          </span>
-                          <input
-                            type="number"
-                            min={0}
-                            disabled={!category.checked}
-                            value={category.fee}
-                            onChange={(e) =>
-                              category.setFee(e.target.value === "" ? "" : Number(e.target.value))
-                            }
-                            className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    <div className="flex items-center justify-between border-t border-green-100 pt-3 text-sm">
-                      <span className="font-medium text-gray-600">Total Mess Fee</span>
-                      <span className="font-bold text-green-700">
-                        {formatCurrency(
-                          (hasBreakfast ? Number(breakfastFee || 0) : 0) +
-                            (hasLunch ? Number(lunchFee || 0) : 0) +
-                            (hasDinner ? Number(dinnerFee || 0) : 0)
-                        )}
-                      </span>
-                    </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center gap-1">
+                      <Utensils className="h-3.5 w-3.5 text-green-600" /> Food / Mess
+                    </label>
+                    <label className="flex h-11 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasMess}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setHasMess(checked);
+                          if (!checked) setMessFee("");
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                      />
+                      <span className="text-xs font-semibold text-gray-600 select-none">Includes Mess</span>
+                    </label>
                   </div>
-                )}
+
+                  {hasMess && (
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                        Monthly Mess Fee (Rs.)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400 select-none">
+                          Rs.
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={messFee}
+                          onChange={(e) => setMessFee(e.target.value === "" ? "" : Number(e.target.value))}
+                          placeholder="Enter mess fee"
+                          className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-11 pr-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">

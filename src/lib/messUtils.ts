@@ -6,10 +6,10 @@ export function hasAnyMess(student: Pick<
   "has_mess" | "has_breakfast" | "has_lunch" | "has_dinner"
 >): boolean {
   return !!(
+    student.has_mess ||
     student.has_breakfast ||
     student.has_lunch ||
-    student.has_dinner ||
-    student.has_mess
+    student.has_dinner
   );
 }
 
@@ -26,6 +26,10 @@ export function getMessTotal(
     | "dinner_fee"
   >
 ): number {
+  if (student.has_mess && Number(student.mess_fee || 0) > 0) {
+    return Number(student.mess_fee || 0);
+  }
+
   const categoryTotal =
     (student.has_breakfast ? Number(student.breakfast_fee || 0) : 0) +
     (student.has_lunch ? Number(student.lunch_fee || 0) : 0) +
@@ -36,31 +40,12 @@ export function getMessTotal(
 }
 
 export function getMessCategorySummary(student: Student): string {
-  const parts: string[] = [];
-
-  if (student.has_breakfast) {
-    parts.push(`Breakfast ${formatCurrency(student.breakfast_fee ?? 0)}`);
-  }
-  if (student.has_lunch) {
-    parts.push(`Lunch ${formatCurrency(student.lunch_fee ?? 0)}`);
-  }
-  if (student.has_dinner) {
-    parts.push(`Dinner ${formatCurrency(student.dinner_fee ?? 0)}`);
-  }
-
-  if (parts.length > 0) return parts.join(" · ");
-
-  if (student.has_mess && student.mess_fee) {
-    return formatCurrency(student.mess_fee);
-  }
-
-  return "—";
+  const total = getMessTotal(student);
+  if (total <= 0) return "—";
+  return formatCurrency(total);
 }
 
 export function getMessCategoryBadges(student: Student): string[] {
-  const badges: string[] = [];
-  if (student.has_breakfast) badges.push("Breakfast");
-  if (student.has_lunch) badges.push("Lunch");
-  if (student.has_dinner) badges.push("Dinner");
-  return badges;
+  if (hasAnyMess(student)) return ["Mess"];
+  return [];
 }
