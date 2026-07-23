@@ -145,8 +145,8 @@ export default function ComplaintsPage() {
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 items-center gap-3">
-            <div className="relative flex-1 max-w-md">
+          <div className="toolbar-controls">
+            <div className="toolbar-search">
               <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -255,9 +255,9 @@ export default function ComplaintsPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-lg rounded-xl border border-gray-100 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowModal(false)} />
+          <div className="modal-panel max-w-lg">
             <button
               onClick={() => setShowModal(false)}
               className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"

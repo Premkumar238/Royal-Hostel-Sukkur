@@ -171,8 +171,8 @@ function FeesPageContent() {
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-1 flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[220px] max-w-md">
+        <div className="toolbar-controls">
+          <div className="toolbar-search">
             <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -182,7 +182,7 @@ function FeesPageContent() {
               className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </div>
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -198,6 +198,7 @@ function FeesPageContent() {
             id="fees-billing-month"
             value={billingMonth}
             onChange={setBillingMonth}
+            className="shrink-0 sm:w-auto"
           />
         </div>
       </div>

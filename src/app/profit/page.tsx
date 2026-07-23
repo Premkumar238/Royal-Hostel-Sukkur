@@ -150,7 +150,7 @@ export default function ProfitPage() {
 
           {/* Recharts Trend Charts */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="col-span-2 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-1">Monthly Financial Trend</h3>
               <p className="text-xs text-gray-400 mb-4">Comparison of monthly income and operating expenses</p>
               <div className="h-56 sm:h-64 lg:h-80 min-h-[14rem]">

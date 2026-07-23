@@ -131,7 +131,7 @@ export default function DashboardPage() {
     <AdminLayout>
       <Header title="Dashboard" searchPlaceholder="Search student or room..." />
 
-      <div className="page-shell">
+      <div className="page-shell page-shell--fab">
         {/* Stats Row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
@@ -169,7 +169,7 @@ export default function DashboardPage() {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="col-span-2 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
             <h3 className="text-sm font-semibold text-gray-900">
               Income vs Expenses
             </h3>
@@ -226,7 +226,7 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-            <div className="mt-2 flex justify-center gap-4 text-xs">
+            <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs">
               {occupancyData.map((d, i) => (
                 <div key={d.name} className="flex items-center gap-1.5">
                   <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: OCCUPANCY_COLORS[i] }} />
@@ -343,7 +343,7 @@ export default function DashboardPage() {
             className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px] transition-opacity"
             onClick={() => setShowQuickActions(false)}
           />
-          <div className="fixed bottom-24 right-6 z-50 w-56 rounded-xl border border-gray-100 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in slide-in-from-bottom-4 duration-150">
+          <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-4 right-4 z-50 mx-auto max-w-xs rounded-xl border border-gray-100 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in slide-in-from-bottom-4 duration-150 sm:bottom-24 sm:left-auto sm:right-[max(1.5rem,env(safe-area-inset-right))] sm:mx-0 sm:w-56">
             <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
               Quick Actions
             </p>
@@ -393,7 +393,7 @@ export default function DashboardPage() {
       {/* FAB */}
           <button
             onClick={() => setShowQuickActions(!showQuickActions)}
-            className={`fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all duration-200 active:scale-95 cursor-pointer max-lg:bottom-[max(1.5rem,env(safe-area-inset-bottom))] ${
+            className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))] z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all duration-200 active:scale-95 cursor-pointer ${
           showQuickActions
             ? "bg-gray-800 hover:bg-gray-900 rotate-90"
             : "bg-blue-600 hover:bg-blue-700 hover:scale-105"

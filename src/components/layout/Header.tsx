@@ -60,7 +60,7 @@ export function Header({ title, searchPlaceholder = "Search..." }: HeaderProps) 
             <HelpCircle className="h-5 w-5" />
           </button>
 
-          <div className="flex items-center gap-2 border-l border-gray-200 pl-2 sm:gap-3 sm:pl-4">
+          <div className="flex items-center gap-2 border-l border-gray-200 pl-2 max-[380px]:hidden sm:gap-3 sm:pl-4">
             <Avatar name={profile?.full_name ?? "User"} size="sm" src={profile?.avatar_url} />
             <div className="hidden min-w-0 sm:block">
               <p className="truncate text-sm font-semibold text-gray-900 max-w-[8rem] md:max-w-[12rem]">

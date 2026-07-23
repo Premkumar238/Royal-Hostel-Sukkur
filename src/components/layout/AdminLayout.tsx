@@ -15,7 +15,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] bg-gray-50">
       <Sidebar mobileOpen={mobileNavOpen} onClose={closeMobileNav} />
-      <main className="min-w-0 lg:ml-64">{children}</main>
+      <main className="min-w-0 overflow-x-clip lg:ml-64">{children}</main>
     </div>
   );
 }

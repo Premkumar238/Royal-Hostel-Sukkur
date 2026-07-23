@@ -139,7 +139,7 @@ export default function PoliceVerificationPage() {
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           </div>
         ) : (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="flex items-start gap-4 mb-6">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                 <ShieldCheck className="h-6 w-6" />

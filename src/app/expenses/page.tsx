@@ -690,7 +690,7 @@ export default function ExpensesPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
+            <div className="toolbar-search">
               <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -776,9 +776,9 @@ export default function ExpensesPage() {
 
       {/* Add Employee Modal */}
       {showEmployeeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowEmployeeModal(false)} />
-          <div className="relative w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-2xl">
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowEmployeeModal(false)} />
+          <div className="modal-panel max-w-md">
             <button
               onClick={() => setShowEmployeeModal(false)}
               className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
@@ -821,7 +821,7 @@ export default function ExpensesPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
                     Monthly Salary
@@ -865,9 +865,9 @@ export default function ExpensesPage() {
 
       {/* Log Expense Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowLogModal(false)} />
-          <div className="relative w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-2xl">
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowLogModal(false)} />
+          <div className="modal-panel max-w-md">
             <button onClick={() => setShowLogModal(false)} className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
               <X className="h-4.5 w-4.5" />
             </button>
@@ -881,7 +881,7 @@ export default function ExpensesPage() {
                   <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-blue-400 focus:outline-none" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Category</label>
                   <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full rounded-lg border border-gray-200 bg-white py-2.5 px-3 text-sm focus:border-blue-400 focus:outline-none cursor-pointer">
@@ -924,9 +924,9 @@ export default function ExpensesPage() {
 
       {/* Initial Mess Expense Modal */}
       {showInitialMessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowInitialMessModal(false)} />
-          <div className="relative w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-2xl">
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowInitialMessModal(false)} />
+          <div className="modal-panel max-w-md">
             <button onClick={() => setShowInitialMessModal(false)} className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
               <X className="h-4.5 w-4.5" />
             </button>
@@ -973,9 +973,9 @@ export default function ExpensesPage() {
 
       {/* Daily Mess Expense Modal */}
       {showDailyMessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowDailyMessModal(false)} />
-          <div className="relative w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-2xl">
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowDailyMessModal(false)} />
+          <div className="modal-panel max-w-md">
             <button onClick={() => setShowDailyMessModal(false)} className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
               <X className="h-4.5 w-4.5" />
             </button>
@@ -1035,9 +1035,9 @@ export default function ExpensesPage() {
 
       {/* Add Category Modal */}
       {showCatModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowCatModal(false)} />
-          <div className="relative w-full max-w-sm rounded-xl border border-gray-100 bg-white p-6 shadow-2xl">
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowCatModal(false)} />
+          <div className="modal-panel max-w-sm">
             <button onClick={() => setShowCatModal(false)} className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
               <X className="h-4.5 w-4.5" />
             </button>

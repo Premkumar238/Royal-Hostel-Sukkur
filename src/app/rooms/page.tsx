@@ -386,8 +386,8 @@ export default function RoomsPage() {
 
         {/* Actions Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 items-center gap-3">
-            <div className="relative flex-1 max-w-md">
+          <div className="toolbar-controls">
+            <div className="toolbar-search">
               <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -485,9 +485,9 @@ export default function RoomsPage() {
 
       {/* Add Room Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowAddModal(false)} />
-          <div className="relative w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowAddModal(false)} />
+          <div className="modal-panel max-w-md">
             <button
               onClick={() => setShowAddModal(false)}
               className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
@@ -499,7 +499,7 @@ export default function RoomsPage() {
             </h3>
 
             <form onSubmit={handleRoomSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
                     Room Number
@@ -546,7 +546,7 @@ export default function RoomsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
                     Bed Capacity
@@ -594,9 +594,9 @@ export default function RoomsPage() {
 
       {/* Room Details & Management Modal */}
       {selectedRoom && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setSelectedRoom(null)} />
-          <div className="relative w-full max-w-2xl rounded-xl border border-gray-100 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150 overflow-y-auto max-h-[90vh]">
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setSelectedRoom(null)} />
+          <div className="modal-panel max-w-2xl">
             <button
               onClick={() => setSelectedRoom(null)}
               className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
@@ -614,7 +614,7 @@ export default function RoomsPage() {
                 <p className="text-xs text-gray-400 mb-6">{selectedRoom.room_type} · Floor {selectedRoom.floor}</p>
 
                 {/* Info Badges */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-3">
                   <div className="rounded-lg bg-gray-50 p-3 text-center">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">Vacant Beds</span>
                     <span className="text-lg font-extrabold text-blue-600">{vacantBedsCount} / {beds.length}</span>

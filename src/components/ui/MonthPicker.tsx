@@ -18,13 +18,13 @@ export function MonthPicker({ value, onChange, className = "", id }: MonthPicker
   return (
     <label
       htmlFor={id}
-      className={`relative inline-flex min-w-[9.5rem] cursor-pointer items-center rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 ${className}`}
+      className={`relative inline-flex w-full min-w-0 cursor-pointer items-center rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 sm:w-auto sm:min-w-[9.5rem] ${className}`}
     >
       <Calendar
         className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
         aria-hidden
       />
-      <span className="pointer-events-none whitespace-nowrap text-sm font-semibold text-gray-900">
+      <span className="pointer-events-none truncate text-sm font-semibold text-gray-900">
         {formatMonth(labelDate)}
       </span>
       <input
