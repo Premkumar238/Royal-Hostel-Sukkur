@@ -6,12 +6,12 @@ import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import {
-  getInitialInvestment,
-  netCashBudget,
+  calculateBusinessBudget,
+  type BusinessBudgetSummary,
   sumCashIn,
   sumCashOut,
 } from "@/lib/cashUtils";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
 import type { CashBudget, CashEntryType } from "@/types/database";
 import {
   ArrowDownLeft,
@@ -29,6 +29,7 @@ import {
 export default function CashPage() {
   const { currentHostel } = useHostel();
   const [entries, setEntries] = useState<CashBudget[]>([]);
+  const [budgetSummary, setBudgetSummary] = useState<BusinessBudgetSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
   const [modalType, setModalType] = useState<CashEntryType | null>(null);
@@ -39,29 +40,47 @@ export default function CashPage() {
 
   const supabase = createClient();
 
-  const fetchEntries = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("cash_budgets")
-      .select("*")
-      .eq("hostel_id", currentHostel.id)
-      .order("entry_date", { ascending: false })
-      .order("created_at", { ascending: false });
+    const [cashRes, expensesRes, feesRes] = await Promise.all([
+      supabase
+        .from("cash_budgets")
+        .select("*")
+        .eq("hostel_id", currentHostel.id)
+        .order("entry_date", { ascending: false })
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("expenses")
+        .select("amount, expense_date")
+        .eq("hostel_id", currentHostel.id),
+      supabase
+        .from("fee_records")
+        .select("amount, payment_date, billing_month")
+        .eq("hostel_id", currentHostel.id)
+        .in("status", ["paid", "partial"]),
+    ]);
 
-    if (!error && data) setEntries(data as CashBudget[]);
+    const cashEntries = (cashRes.data ?? []) as CashBudget[];
+    setEntries(cashEntries);
+    setBudgetSummary(
+      calculateBusinessBudget(
+        cashEntries,
+        (expensesRes.data ?? []) as { amount: number; expense_date: string }[],
+        (feesRes.data ?? []) as { amount: number; payment_date: string | null; billing_month: string }[]
+      )
+    );
     setLoading(false);
   }, [currentHostel, supabase]);
 
   useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+    fetchData();
+  }, [fetchData]);
 
+  const currentBudget = budgetSummary?.budget ?? 0;
   const cashInTotal = useMemo(() => sumCashIn(entries), [entries]);
   const cashOutTotal = useMemo(() => sumCashOut(entries), [entries]);
-  const availableBudget = useMemo(() => netCashBudget(entries), [entries]);
-  const initialInvestment = useMemo(() => getInitialInvestment(entries), [entries]);
 
   const openModal = (type: CashEntryType) => {
     setModalType(type);
@@ -84,8 +103,8 @@ export default function CashPage() {
       return;
     }
 
-    if (modalType === "out" && value > availableBudget) {
-      alert(`Cannot cash out more than available budget (${formatCurrency(availableBudget, currentHostel.currency)}).`);
+    if (modalType === "out" && value > currentBudget) {
+      alert(`Cannot cash out more than current budget (${formatCurrency(currentBudget, currentHostel.currency)}).`);
       return;
     }
 
@@ -105,7 +124,7 @@ export default function CashPage() {
 
     if (!error) {
       setModalType(null);
-      fetchEntries();
+      fetchData();
     } else {
       alert(error.message);
     }
@@ -114,7 +133,7 @@ export default function CashPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Remove this cash entry?")) return;
     const { error } = await supabase.from("cash_budgets").delete().eq("id", id);
-    if (!error) fetchEntries();
+    if (!error) fetchData();
     else alert(error.message);
   };
 
@@ -127,7 +146,7 @@ export default function CashPage() {
           <div>
             <h2 className="text-sm font-bold text-gray-900">Business Budget</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Cash in adds investment · Cash out removes money from budget
+              Budget = remaining after starting month expenses + net profit
             </p>
           </div>
           <div className="flex flex-wrap gap-2.5">
@@ -142,7 +161,7 @@ export default function CashPage() {
             <button
               type="button"
               onClick={() => openModal("out")}
-              disabled={availableBudget <= 0}
+              disabled={currentBudget <= 0}
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Minus className="h-4 w-4" />
@@ -152,42 +171,63 @@ export default function CashPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 shadow-sm">
+          <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 shadow-sm sm:col-span-2 xl:col-span-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700">
-              Available Budget
+              Current Budget
             </span>
             <p className="mt-1 text-2xl font-bold text-violet-900">
-              {formatCurrency(availableBudget, currentHostel?.currency)}
+              {formatCurrency(currentBudget, currentHostel?.currency)}
             </p>
-            <p className="text-xs text-violet-700/80 mt-1">Shown on dashboard</p>
+            <p className="text-xs text-violet-700/80 mt-1">Shown on dashboard · updates with profit</p>
+          </div>
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">
+              After Start Month Expenses
+            </span>
+            <p className="mt-1 text-2xl font-bold text-blue-900">
+              {formatCurrency(budgetSummary?.remainingAfterStartingMonth ?? 0, currentHostel?.currency)}
+            </p>
+            <p className="text-xs text-blue-700/80 mt-1">
+              {budgetSummary?.startingMonth
+                ? `Starting month: ${formatMonth(`${budgetSummary.startingMonth}-01`)}`
+                : "Add initial cash in first"}
+            </p>
           </div>
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-              Total Cash In
+              Net Profit
             </span>
             <p className="mt-1 text-2xl font-bold text-emerald-800">
-              {formatCurrency(cashInTotal, currentHostel?.currency)}
+              {formatCurrency(budgetSummary?.profitContribution ?? 0, currentHostel?.currency)}
             </p>
-          </div>
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 shadow-sm">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-red-700">
-              Total Cash Out
-            </span>
-            <p className="mt-1 text-2xl font-bold text-red-800">
-              {formatCurrency(cashOutTotal, currentHostel?.currency)}
-            </p>
+            <p className="text-xs text-emerald-700/80 mt-1">Paid fees minus expenses after starting month</p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
               Initial Investment
             </span>
             <p className="mt-1 text-2xl font-bold text-gray-900">
-              {initialInvestment !== null
-                ? formatCurrency(initialInvestment, currentHostel?.currency)
+              {budgetSummary?.initialInvestment != null
+                ? formatCurrency(budgetSummary.initialInvestment, currentHostel?.currency)
                 : "Not set"}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Cash in {formatCurrency(cashInTotal, currentHostel?.currency)} · Out{" "}
+              {formatCurrency(cashOutTotal, currentHostel?.currency)}
             </p>
           </div>
         </div>
+
+        {budgetSummary?.startingMonth && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600">
+            <strong className="text-gray-800">Formula:</strong> Budget = remaining after{" "}
+            {formatMonth(`${budgetSummary.startingMonth}-01`)} expenses (
+            {formatCurrency(budgetSummary.remainingAfterStartingMonth, currentHostel?.currency)}) + net profit
+            after that month (
+            {formatCurrency(budgetSummary.profitContribution, currentHostel?.currency)}
+            )
+          </div>
+        )}
 
         {loading ? (
           <div className="flex h-64 items-center justify-center">
@@ -281,7 +321,7 @@ export default function CashPage() {
             <p className="text-xs text-gray-400 mb-6">
               {modalType === "in"
                 ? "Add investment to business budget"
-                : `Remove from budget · Available: ${formatCurrency(availableBudget, currentHostel?.currency)}`}
+                : `Remove from budget · Available: ${formatCurrency(currentBudget, currentHostel?.currency)}`}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -295,7 +335,7 @@ export default function CashPage() {
                     type="number"
                     required
                     min={1}
-                    max={modalType === "out" ? availableBudget : undefined}
+                    max={modalType === "out" ? Math.max(currentBudget, 0) : undefined}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
                     className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm focus:border-blue-400 focus:outline-none"

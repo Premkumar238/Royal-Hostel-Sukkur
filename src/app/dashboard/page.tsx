@@ -15,8 +15,8 @@ import {
   calcOccupancyRate,
   formatDate,
 } from "@/lib/utils";
-import { getInitialInvestment, netCashBudget } from "@/lib/cashUtils";
-import type { DashboardStats, FinancialChartPoint, FeeRecord, Expense } from "@/types/database";
+import { calculateBusinessBudget } from "@/lib/cashUtils";
+import type { CashBudget, DashboardStats, FinancialChartPoint, FeeRecord, Expense } from "@/types/database";
 import {
   Users,
   DoorOpen,
@@ -52,6 +52,8 @@ export default function DashboardPage() {
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [totalBudget, setTotalBudget] = useState(0);
   const [initialBudget, setInitialBudget] = useState<number | null>(null);
+  const [budgetNetProfit, setBudgetNetProfit] = useState(0);
+  const [remainingAfterStart, setRemainingAfterStart] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const supabase = createClient();
@@ -65,7 +67,8 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setLoading(true);
 
-      const [statsRes, chartRes, feesRes, expensesRes, cashRes] = await Promise.all([
+      const [statsRes, chartRes, feesRes, expensesRes, cashRes, allExpensesRes, allFeesRes] =
+        await Promise.all([
         supabase.rpc("get_dashboard_stats", { p_hostel_id: currentHostel.id }),
         supabase.rpc("get_financial_chart", {
           p_hostel_id: currentHostel.id,
@@ -83,10 +86,13 @@ export default function DashboardPage() {
           .eq("hostel_id", currentHostel.id)
           .order("expense_date", { ascending: false })
           .limit(5),
+        supabase.from("cash_budgets").select("*").eq("hostel_id", currentHostel.id),
+        supabase.from("expenses").select("amount, expense_date").eq("hostel_id", currentHostel.id),
         supabase
-          .from("cash_budgets")
-          .select("amount, entry_date, created_at, entry_type")
-          .eq("hostel_id", currentHostel.id),
+          .from("fee_records")
+          .select("amount, payment_date, billing_month")
+          .eq("hostel_id", currentHostel.id)
+          .in("status", ["paid", "partial"]),
       ]);
 
       if (statsRes.data) setStats(statsRes.data as unknown as DashboardStats);
@@ -94,19 +100,20 @@ export default function DashboardPage() {
       if (feesRes.data) setRecentFees(feesRes.data as FeeRecord[]);
       if (expensesRes.data) setRecentExpenses(expensesRes.data as Expense[]);
 
-      if (cashRes.data && cashRes.data.length > 0) {
-        const rows = cashRes.data as {
+      const budget = calculateBusinessBudget(
+        (cashRes.data ?? []) as CashBudget[],
+        (allExpensesRes.data ?? []) as { amount: number; expense_date: string }[],
+        (allFeesRes.data ?? []) as {
           amount: number;
-          entry_date: string;
-          created_at: string;
-          entry_type: "in" | "out";
-        }[];
-        setTotalBudget(netCashBudget(rows));
-        setInitialBudget(getInitialInvestment(rows));
-      } else {
-        setTotalBudget(0);
-        setInitialBudget(null);
-      }
+          payment_date: string | null;
+          billing_month: string;
+        }[]
+      );
+
+      setTotalBudget(budget.budget);
+      setInitialBudget(budget.initialInvestment);
+      setRemainingAfterStart(budget.remainingAfterStartingMonth);
+      setBudgetNetProfit(budget.profitContribution);
 
       setLoading(false);
     };
@@ -184,8 +191,8 @@ export default function DashboardPage() {
               icon={PiggyBank}
               subtitle={
                 initialBudget !== null
-                  ? `Available · Initial ${formatCurrency(initialBudget, currentHostel.currency)}`
-                  : "Add business investment in Cash"
+                  ? `After start month ${formatCurrency(remainingAfterStart, currentHostel.currency)} + profit ${formatCurrency(budgetNetProfit, currentHostel.currency)}`
+                  : "Add initial investment in Cash"
               }
             />
           </Link>
