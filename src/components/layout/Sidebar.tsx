@@ -15,7 +15,6 @@ import {
   Building2,
   MessageSquareWarning,
   BookOpen,
-  Wallet,
   X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +29,6 @@ const navItems = [
   { href: "/complaints", label: "Complaints", icon: MessageSquareWarning },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/ledger", label: "Ledger", icon: BookOpen },
-  { href: "/payouts", label: "Payouts", icon: Wallet },
   { href: "/profit", label: "Profit Dashboard", icon: TrendingUp },
 ];
 
