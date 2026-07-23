@@ -431,7 +431,8 @@ function StudentsPageContent() {
   });
 
   return (
-    <div className="page-shell">
+    <>
+      <div className="page-shell">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="toolbar-controls">
             <div className="toolbar-search">
@@ -998,6 +999,6 @@ function StudentsPageContent() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
