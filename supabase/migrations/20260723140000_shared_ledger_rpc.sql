@@ -1,6 +1,9 @@
 -- Fetch shared ledger via RPC (bypasses RLS issues on cross-hostel reads)
+-- Note: PostgREST matches RPC params alphabetically — p_end before p_start in signature.
 
-CREATE OR REPLACE FUNCTION get_shared_ledger_payments(p_start date, p_end date)
+DROP FUNCTION IF EXISTS get_shared_ledger_payments(date, date);
+
+CREATE OR REPLACE FUNCTION get_shared_ledger_payments(p_end date, p_start date)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -46,7 +49,6 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION get_shared_ledger_payments(date, date) TO authenticated;
-
 CREATE OR REPLACE FUNCTION delete_shared_ledger_payment(p_expense_id uuid)
 RETURNS void
 LANGUAGE plpgsql
