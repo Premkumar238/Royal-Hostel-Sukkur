@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -133,6 +134,26 @@ function FileUploadField({ label, file, existingUrl, onChange, inputRef }: FileU
 }
 
 export default function StudentsPage() {
+  return (
+    <AdminLayout>
+      <Header title="Student Directory" searchPlaceholder="Quick search..." />
+      <Suspense
+        fallback={
+          <div className="flex h-96 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        }
+      >
+        <StudentsPageContent />
+      </Suspense>
+    </AdminLayout>
+  );
+}
+
+function StudentsPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const messOnly = searchParams.get("mess") === "1";
   const { currentHostel } = useHostel();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -388,6 +409,15 @@ export default function StudentsPage() {
     }
   };
 
+  const messStudentCount = useMemo(
+    () => students.filter((student) => hasAnyMess(student)).length,
+    [students]
+  );
+
+  const toggleMessFilter = () => {
+    router.replace(messOnly ? "/students" : "/students?mess=1", { scroll: false });
+  };
+
   const filteredStudents = students.filter((s) => {
     const displayName = s.full_name ?? "";
     const matchesSearch =
@@ -396,14 +426,12 @@ export default function StudentsPage() {
       (s.university?.toLowerCase() || "").includes(search.toLowerCase()) ||
       (s.registration_no?.toLowerCase() || "").includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || s.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesMess = !messOnly || hasAnyMess(s);
+    return matchesSearch && matchesStatus && matchesMess;
   });
 
   return (
-    <AdminLayout>
-      <Header title="Student Directory" searchPlaceholder="Quick search..." />
-
-      <div className="page-shell">
+    <div className="page-shell">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="toolbar-controls">
             <div className="toolbar-search">
@@ -430,14 +458,41 @@ export default function StudentsPage() {
             </div>
           </div>
 
-          <button
-            onClick={openAddModal}
-            className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors active:scale-95 cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Student</span>
-          </button>
+          <div className="flex flex-wrap gap-2.5">
+            <button
+              type="button"
+              onClick={toggleMessFilter}
+              className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors cursor-pointer ${
+                messOnly
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : "border border-green-200 bg-green-50 text-green-800 hover:bg-green-100"
+              }`}
+            >
+              <Utensils className="h-4 w-4" />
+              <span>
+                {messOnly ? "Show All Students" : `Mess Students (${messStudentCount})`}
+              </span>
+            </button>
+            <button
+              onClick={openAddModal}
+              className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors active:scale-95 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Student</span>
+            </button>
+          </div>
         </div>
+
+        {messOnly && (
+          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            Showing <strong>{filteredStudents.length}</strong> student
+            {filteredStudents.length === 1 ? "" : "s"} with mess fee. Pay mess fees from{" "}
+            <a href="/fees" className="font-semibold underline hover:text-green-900">
+              Fees &amp; Invoices
+            </a>
+            .
+          </div>
+        )}
 
         {loading ? (
           <div className="flex h-96 items-center justify-center">
@@ -445,8 +500,14 @@ export default function StudentsPage() {
           </div>
         ) : filteredStudents.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-            <p className="text-sm font-medium text-gray-500">No students found</p>
-            <p className="text-xs text-gray-400 mt-1">Try resetting your search query or add a new student.</p>
+            <p className="text-sm font-medium text-gray-500">
+              {messOnly ? "No mess students found" : "No students found"}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {messOnly
+                ? "Add mess fee when registering a student, or clear the mess filter."
+                : "Try resetting your search query or add a new student."}
+            </p>
           </div>
         ) : (
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
@@ -937,6 +998,6 @@ export default function StudentsPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </div>
   );
 }
