@@ -186,12 +186,15 @@ export interface PoliceVerification {
   updated_at: string;
 }
 
+export type CashEntryType = "in" | "out";
+
 export interface CashBudget {
   id: string;
   hostel_id: string;
   amount: number;
   entry_date: string;
   description: string | null;
+  entry_type: CashEntryType;
   created_at: string;
 }
 

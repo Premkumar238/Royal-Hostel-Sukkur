@@ -15,6 +15,7 @@ import {
   calcOccupancyRate,
   formatDate,
 } from "@/lib/utils";
+import { getInitialInvestment, netCashBudget } from "@/lib/cashUtils";
 import type { DashboardStats, FinancialChartPoint, FeeRecord, Expense } from "@/types/database";
 import {
   Users,
@@ -84,7 +85,7 @@ export default function DashboardPage() {
           .limit(5),
         supabase
           .from("cash_budgets")
-          .select("amount, entry_date, created_at")
+          .select("amount, entry_date, created_at, entry_type")
           .eq("hostel_id", currentHostel.id),
       ]);
 
@@ -94,15 +95,14 @@ export default function DashboardPage() {
       if (expensesRes.data) setRecentExpenses(expensesRes.data as Expense[]);
 
       if (cashRes.data && cashRes.data.length > 0) {
-        const rows = cashRes.data as { amount: number; entry_date: string; created_at: string }[];
-        const total = rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-        setTotalBudget(total);
-        const oldest = [...rows].sort((a, b) => {
-          const byDate = new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime();
-          if (byDate !== 0) return byDate;
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        })[0];
-        setInitialBudget(Number(oldest.amount || 0));
+        const rows = cashRes.data as {
+          amount: number;
+          entry_date: string;
+          created_at: string;
+          entry_type: "in" | "out";
+        }[];
+        setTotalBudget(netCashBudget(rows));
+        setInitialBudget(getInitialInvestment(rows));
       } else {
         setTotalBudget(0);
         setInitialBudget(null);
@@ -184,7 +184,7 @@ export default function DashboardPage() {
               icon={PiggyBank}
               subtitle={
                 initialBudget !== null
-                  ? `Initial investment ${formatCurrency(initialBudget, currentHostel.currency)}`
+                  ? `Available · Initial ${formatCurrency(initialBudget, currentHostel.currency)}`
                   : "Add business investment in Cash"
               }
             />

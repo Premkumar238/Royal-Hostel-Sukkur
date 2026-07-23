@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS cash_budgets (
   amount numeric(12, 2) NOT NULL CHECK (amount > 0),
   entry_date date NOT NULL DEFAULT CURRENT_DATE,
   description text,
+  entry_type text NOT NULL DEFAULT 'in' CHECK (entry_type IN ('in', 'out')),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
