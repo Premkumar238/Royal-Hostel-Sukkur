@@ -12,8 +12,8 @@ import {
   payoutTitle,
   type PayoutRecipient,
 } from "@/lib/payoutUtils";
-import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
-import type { Expense } from "@/types/database";
+import { formatCurrency, formatDate, formatMonth, currentYearMonth } from "@/lib/utils";
+import type { Expense, Hostel } from "@/types/database";
 import {
   Banknote,
   Calendar,
@@ -33,12 +33,14 @@ function monthDateRange(yearMonth: string) {
   };
 }
 
+type LedgerExpense = Expense & { hostels?: Pick<Hostel, "name"> | null };
+
 export default function LedgerPage() {
   const { currentHostel } = useHostel();
-  const [payments, setPayments] = useState<Expense[]>([]);
+  const [payments, setPayments] = useState<LedgerExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
-  const [billingMonth, setBillingMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [billingMonth, setBillingMonth] = useState(currentYearMonth());
 
   const [payModalRecipient, setPayModalRecipient] = useState<PayoutRecipient | null>(null);
   const [amount, setAmount] = useState<number | "">("");
@@ -56,14 +58,13 @@ export default function LedgerPage() {
 
     const { data } = await supabase
       .from("expenses")
-      .select("*")
-      .eq("hostel_id", currentHostel.id)
+      .select("*, hostels(name)")
       .in("vendor", [...PAYOUT_RECIPIENTS])
       .gte("expense_date", start)
       .lte("expense_date", end)
       .order("expense_date", { ascending: false });
 
-    if (data) setPayments(data as Expense[]);
+    if (data) setPayments(data as LedgerExpense[]);
     setLoading(false);
   }, [billingMonth, currentHostel, supabase]);
 
@@ -72,7 +73,7 @@ export default function LedgerPage() {
   }, [fetchPayments]);
 
   const paymentsByRecipient = useMemo(() => {
-    const map = new Map<PayoutRecipient, Expense[]>();
+    const map = new Map<PayoutRecipient, LedgerExpense[]>();
     for (const name of PAYOUT_RECIPIENTS) {
       map.set(name, []);
     }
@@ -146,7 +147,7 @@ export default function LedgerPage() {
           <div>
             <h2 className="text-sm font-bold text-gray-900">People Ledger</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Pay Ameet Lalwani, Khairpur Home, or Sain Amjad — each payment is saved as an expense
+              Shared for both hostels — pay Ameet Lalwani, Khairpur Home, or Sain Amjad
             </p>
           </div>
           <MonthPicker
@@ -229,6 +230,11 @@ export default function LedgerPage() {
                                 {payment.description && (
                                   <p className="text-[11px] text-gray-400 line-clamp-2 mt-0.5">
                                     {payment.description}
+                                  </p>
+                                )}
+                                {payment.hostels?.name && payment.hostel_id !== currentHostel?.id && (
+                                  <p className="text-[10px] font-medium text-blue-600 mt-0.5">
+                                    Recorded by {payment.hostels.name}
                                   </p>
                                 )}
                               </td>

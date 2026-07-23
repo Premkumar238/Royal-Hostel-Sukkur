@@ -40,3 +40,9 @@ export async function ensurePayoutCategory(
 export function payoutTitle(recipientName: PayoutRecipient): string {
   return `Payment — ${recipientName}`;
 }
+
+/** Both Royal Girls hostels use one shared people ledger */
+export const SHARED_LEDGER_HOSTEL_SLUGS = [
+  "royal-girls-hostel-1",
+  "royal-girls-hostel-2",
+] as const;
