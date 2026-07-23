@@ -14,12 +14,13 @@ import {
   calcProfitMargin,
   calcOccupancyRate,
   formatDate,
+  formatDateTime,
   formatMonth,
   currentBillingMonthDate,
 } from "@/lib/utils";
 import type { MonthCloseResult } from "@/lib/monthCloseUtils";
 import { calculateBusinessBudget } from "@/lib/cashUtils";
-import type { CashBudget, DashboardStats, FinancialChartPoint, FeeRecord, Expense } from "@/types/database";
+import type { CashBudget, DashboardStats, FinancialChartPoint, FeeRecord, Expense, MonthClosure } from "@/types/database";
 import {
   Users,
   DoorOpen,
@@ -31,6 +32,7 @@ import {
   Receipt,
   ShieldCheck,
   PiggyBank,
+  CalendarClock,
 } from "lucide-react";
 import {
   LineChart,
@@ -60,6 +62,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [monthCloseNotice, setMonthCloseNotice] = useState<MonthCloseResult | null>(null);
+  const [lastMonthClosure, setLastMonthClosure] = useState<Pick<MonthClosure, "billing_month" | "closed_at"> | null>(null);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const supabase = createClient();
 
@@ -72,7 +75,7 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setLoading(true);
 
-      const [statsRes, chartRes, feesRes, expensesRes, cashRes, allExpensesRes, allFeesRes] =
+      const [statsRes, chartRes, feesRes, expensesRes, cashRes, allExpensesRes, allFeesRes, closureRes] =
         await Promise.all([
         supabase.rpc("get_dashboard_stats", { p_hostel_id: currentHostel.id }),
         supabase.rpc("get_financial_chart", {
@@ -98,6 +101,13 @@ export default function DashboardPage() {
           .select("amount, payment_date, billing_month")
           .eq("hostel_id", currentHostel.id)
           .in("status", ["paid", "partial"]),
+        supabase
+          .from("month_closures")
+          .select("billing_month, closed_at")
+          .eq("hostel_id", currentHostel.id)
+          .order("closed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       if (statsRes.data) setStats(statsRes.data as unknown as DashboardStats);
@@ -119,6 +129,12 @@ export default function DashboardPage() {
       setInitialBudget(budget.initialInvestment);
       setRemainingAfterStart(budget.remainingAfterStartingMonth);
       setBudgetNetProfit(budget.profitContribution);
+
+      if (closureRes.data) {
+        setLastMonthClosure(closureRes.data as Pick<MonthClosure, "billing_month" | "closed_at">);
+      } else {
+        setLastMonthClosure(null);
+      }
 
       setLoading(false);
     };
@@ -192,9 +208,37 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-xs text-gray-500">
-          Operating month: <strong className="text-gray-800">{formatMonth(currentBillingMonthDate())}</strong>
-          · Income, expenses, and pending fees show this month only · Budget and ledger are cumulative
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-xs text-gray-500">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              Operating month:{" "}
+              <strong className="text-gray-800">{formatMonth(currentBillingMonthDate())}</strong>
+              <span className="hidden sm:inline">
+                {" "}
+                · Income, expenses, and pending fees show this month only · Budget and ledger are cumulative
+              </span>
+            </p>
+            {lastMonthClosure ? (
+              <p className="inline-flex items-center gap-1.5 text-gray-600 sm:text-right">
+                <CalendarClock className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                <span>
+                  Last closing:{" "}
+                  <strong className="text-gray-800">
+                    {formatMonth(lastMonthClosure.billing_month)}
+                  </strong>{" "}
+                  on{" "}
+                  <strong className="text-gray-800">
+                    {formatDateTime(lastMonthClosure.closed_at, currentHostel.timezone)}
+                  </strong>
+                </span>
+              </p>
+            ) : (
+              <p className="inline-flex items-center gap-1.5 text-gray-400 sm:text-right">
+                <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                No month closed yet
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Stats Row */}

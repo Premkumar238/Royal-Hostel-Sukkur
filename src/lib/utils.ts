@@ -21,6 +21,19 @@ export function formatDate(date: string | null): string {
   });
 }
 
+export function formatDateTime(date: string | null, timeZone?: string | null): string {
+  if (!date) return "—";
+  return new Date(date).toLocaleString("en-PK", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    ...(timeZone ? { timeZone } : {}),
+  });
+}
+
 export function formatMonth(date: string): string {
   return new Date(date).toLocaleDateString("en-US", {
     month: "short",
