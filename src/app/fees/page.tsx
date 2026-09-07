@@ -281,7 +281,11 @@ function FeesPageContent() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+<<<<<<< HEAD
                         {currentHostel && row.invoiceStatus === "paid" && (
+=======
+                        {currentHostel && (
+>>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
                           <StudentWhatsAppButton
                             student={row.student}
                             hostel={currentHostel}

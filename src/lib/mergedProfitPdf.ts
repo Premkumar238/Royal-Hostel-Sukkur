@@ -1,4 +1,5 @@
 import type { MergedProfitMonthlyReport } from "@/lib/mergedProfitUtils";
+<<<<<<< HEAD
 import {
   computeStudentBillingStatus,
   groupExpensesByHostel,
@@ -6,6 +7,9 @@ import {
   summarizeHostelRow,
   summarizeMergedReport,
 } from "@/lib/mergedProfitUtils";
+=======
+import { summarizeHostelRow, summarizeMergedReport } from "@/lib/mergedProfitUtils";
+>>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
 import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
 
 async function loadPdfScripts() {
@@ -42,7 +46,10 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   const monthLabel = formatMonth(report.billing_month);
   const totals = summarizeMergedReport(report);
   const primaryColor: [number, number, number] = [37, 99, 235];
+<<<<<<< HEAD
   const studentBilling = report.student_billing ?? [];
+=======
+>>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
 
   doc.setFillColor(...primaryColor);
   doc.rect(0, 0, 210, 28, "F");
@@ -112,6 +119,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     })
   );
 
+<<<<<<< HEAD
   for (const [hostelName, rows] of groupStudentBillingByHostel(studentBilling)) {
     addSectionTable(
       `Student Billing — ${hostelName}`,
@@ -131,6 +139,20 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
       })
     );
   }
+=======
+  addSectionTable(
+    "Student Payments (Rent + Mess)",
+    ["Hostel", "Student", "Type", "Amount", "Status", "Paid On"],
+    report.student_payments.map((p) => [
+      p.hostel_name,
+      `${p.student_name} (${p.student_code})`,
+      p.fee_type,
+      money(p.amount, currency),
+      p.status,
+      p.payment_date ? formatDate(p.payment_date) : "—",
+    ])
+  );
+>>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
 
   addSectionTable(
     "Staff Salaries",
@@ -144,6 +166,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     ])
   );
 
+<<<<<<< HEAD
   for (const [hostelName, rows] of groupExpensesByHostel(report.expenses)) {
     addSectionTable(
       `Operating Expenses — ${hostelName}`,
@@ -163,11 +186,33 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     `Mess Operating Expenses — Both Hostels (Total: ${money(messTotal, currency)})`,
     ["Description", "Type", "Amount", "Date", "Hostel"],
     report.mess_expenses.map((m) => [
+=======
+  addSectionTable(
+    "Operating Expenses",
+    ["Hostel", "Title", "Category", "Amount", "Date"],
+    report.expenses.map((e) => [
+      e.hostel_name,
+      e.title,
+      e.category,
+      money(e.amount, currency),
+      formatDate(e.expense_date),
+    ])
+  );
+
+  addSectionTable(
+    "Mess Operating Expenses",
+    ["Hostel", "Description", "Type", "Amount", "Date"],
+    report.mess_expenses.map((m) => [
+      m.hostel_name,
+>>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
       m.description || "—",
       m.expense_type || "—",
       money(m.amount, currency),
       formatDate(m.expense_date),
+<<<<<<< HEAD
       m.hostel_name,
+=======
+>>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
     ])
   );
 
