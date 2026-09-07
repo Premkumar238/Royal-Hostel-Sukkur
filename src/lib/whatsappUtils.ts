@@ -1,7 +1,11 @@
 import type { FeeRecord, Hostel, Student } from "@/types/database";
-import { buildInvoiceLineItemsForSelection, getInvoiceTotal } from "@/lib/studentInvoice";
 import { hasAnyMess } from "@/lib/messUtils";
-import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
+import {
+  generateStudentInvoicePDFBlob,
+  type StudentInvoicePdfData,
+} from "@/lib/pdfGenerator";
+import { getInvoiceTotal } from "@/lib/studentInvoice";
+import { formatDate, formatMonth } from "@/lib/utils";
 
 /** Normalize Pakistani phone numbers for wa.me (digits only, 92 country code). */
 export function normalizeWhatsAppPhone(raw: string | null | undefined): string | null {
@@ -38,71 +42,14 @@ export function resolveParentPhone(student: Student): string | null {
   return null;
 }
 
-export function buildInvoiceWhatsAppMessage(options: {
-  hostel: Pick<Hostel, "name" | "currency" | "contact_phone">;
-  student: Student;
-  billingMonthDate: string;
-  invoiceCode?: string | null;
-  status?: string;
-  lineItems?: { description: string; amount: number }[];
-  paymentDate?: string | null;
-}): string {
-  const { hostel, student, billingMonthDate, invoiceCode, status, paymentDate } = options;
-  const lineItems =
-    options.lineItems ??
-    buildInvoiceLineItemsForSelection(student, true, hasAnyMess(student));
-  const total = getInvoiceTotal(lineItems);
-  const monthLabel = formatMonth(billingMonthDate);
-  const studentName = student.full_name ?? student.student_code;
-  const fatherName = student.father_name?.trim();
-  const isPaid = status === "paid";
-
-  const lines = [
-    `*${hostel.name}*`,
-    isPaid ? `*Payment Receipt — ${monthLabel}*` : `*Fee Invoice — ${monthLabel}*`,
-    "",
-    fatherName ? `Dear ${fatherName},` : "Dear Parent,",
-    "",
-    `Student: ${studentName}`,
-    `Student Code: ${student.student_code}`,
-  ];
-
-  if (invoiceCode) lines.push(`Invoice No: ${invoiceCode}`);
-
-  lines.push("", isPaid ? "*Payment Details:*" : "*Fee Details:*");
-  for (const item of lineItems) {
-    lines.push(`• ${item.description}: ${formatCurrency(item.amount, hostel.currency)}`);
-  }
-
-  lines.push("", `*Total: ${formatCurrency(total, hostel.currency)}*`);
-  lines.push(`Status: ${(status ?? "pending").toUpperCase()}`);
-
-  if (isPaid && paymentDate) {
-    lines.push(`Paid on: ${formatDate(paymentDate)}`);
-  }
-
-  lines.push(
-    "",
-    isPaid
-      ? "Thank you for your payment."
-      : "Please arrange payment at your earliest convenience.",
-    hostel.contact_phone ? `Contact: ${hostel.contact_phone}` : "",
-    "",
-    "Royal Girls Hostels, Sukkur"
-  );
-
-  return lines.filter(Boolean).join("\n");
-}
-
-export function openWhatsAppChat(phone: string, message: string): void {
+export function openWhatsAppChat(phone: string): void {
   const normalized = normalizeWhatsAppPhone(phone);
   if (!normalized) {
     alert("Invalid parent phone number. Add Parents Contact No on the student profile.");
     return;
   }
 
-  const url = `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
-
+  const url = `https://wa.me/${normalized}`;
   const link = document.createElement("a");
   link.href = url;
   link.target = "_blank";
@@ -129,15 +76,50 @@ export function buildPaidLineItemsFromRecords(
   return items;
 }
 
-export function sendStudentInvoiceViaWhatsApp(options: {
-  hostel: Pick<Hostel, "name" | "currency" | "contact_phone">;
+export function buildPaidInvoicePdfData(options: {
+  hostel: Pick<Hostel, "name" | "currency" | "contact_phone" | "address">;
   student: Student;
   billingMonthDate: string;
-  invoiceCode?: string | null;
-  status?: string;
-  lineItems?: { description: string; amount: number }[];
+  invoiceCode: string;
+  lineItems: { description: string; amount: number }[];
   paymentDate?: string | null;
-}): void {
+  paymentMethod?: FeeRecord["payment_method"] | null;
+  invoiceNotes?: string | null;
+}): StudentInvoicePdfData {
+  const { hostel, student, billingMonthDate, invoiceCode, lineItems } = options;
+
+  return {
+    invoiceCode,
+    issueDate: formatDate(new Date().toISOString()),
+    billingMonthLabel: formatMonth(billingMonthDate),
+    hostelName: hostel.name,
+    hostelAddress: hostel.address,
+    hostelPhone: hostel.contact_phone,
+    currency: hostel.currency,
+    studentName: student.full_name ?? student.student_code,
+    studentCode: student.student_code,
+    studentPhone: student.father_phone ?? student.phone,
+    studentCnic: student.cnic,
+    fatherName: student.father_name,
+    lineItems,
+    total: getInvoiceTotal(lineItems),
+    status: "paid",
+    paymentDate: options.paymentDate ? formatDate(options.paymentDate) : null,
+    paymentMethod: options.paymentMethod ?? null,
+    invoiceNotes: options.invoiceNotes ?? null,
+  };
+}
+
+export async function sendStudentInvoicePdfViaWhatsApp(options: {
+  hostel: Pick<Hostel, "name" | "currency" | "contact_phone" | "address">;
+  student: Student;
+  billingMonthDate: string;
+  invoiceCode: string;
+  lineItems: { description: string; amount: number }[];
+  paymentDate?: string | null;
+  paymentMethod?: FeeRecord["payment_method"] | null;
+  invoiceNotes?: string | null;
+}): Promise<void> {
   const parentPhone = resolveParentPhone(options.student);
   if (!parentPhone) {
     alert(
@@ -146,6 +128,35 @@ export function sendStudentInvoiceViaWhatsApp(options: {
     return;
   }
 
-  const message = buildInvoiceWhatsAppMessage(options);
-  openWhatsAppChat(parentPhone, message);
+  const pdfData = buildPaidInvoicePdfData(options);
+  const { blob, filename } = await generateStudentInvoicePDFBlob(pdfData);
+  const file = new File([blob], filename, { type: "application/pdf" });
+
+  if (typeof navigator !== "undefined" && navigator.share && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: filename,
+        text: `Payment receipt — ${pdfData.studentName}`,
+      });
+      return;
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  openWhatsAppChat(parentPhone);
+
+  alert(
+    `Invoice PDF downloaded (${filename}). WhatsApp is opening for the parent number — attach the PDF and send.`
+  );
 }

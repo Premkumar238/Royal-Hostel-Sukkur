@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
@@ -11,6 +11,7 @@ import {
   deleteSharedMessExpense,
   fetchSharedMessExpenses,
 } from "@/lib/sharedMessUtils";
+import { isOperationalExpenseRecord } from "@/lib/expenseRecordUtils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { formatCurrency, formatDate, formatMonth, currentYearMonth } from "@/lib/utils";
 import type { Employee, EmployeeRole, Expense, MessExpense } from "@/types/database";
@@ -305,13 +306,23 @@ export default function ExpensesPage() {
     else alert(error.message);
   };
 
-  const filteredExpenses = expenses.filter((e) => {
+  const operationalExpenses = useMemo(
+    () => expenses.filter(isOperationalExpenseRecord),
+    [expenses]
+  );
+
+  const filteredExpenses = operationalExpenses.filter((e) => {
     const matchesSearch =
       e.title.toLowerCase().includes(search.toLowerCase()) ||
       (e.vendor?.toLowerCase() || "").includes(search.toLowerCase());
     const matchesCategory = categoryFilter === "all" || e.category_id === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  const expenseCategories = useMemo(() => {
+    const usedIds = new Set(operationalExpenses.map((e) => e.category_id).filter(Boolean));
+    return categories.filter((cat) => usedIds.has(cat.id));
+  }, [categories, operationalExpenses]);
 
   return (
     <AdminLayout>
@@ -523,7 +534,9 @@ export default function ExpensesPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-bold text-gray-900">Expense Records</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Track hostel operations and other costs</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Hostel operations only — mess and ledger entries are tracked separately
+              </p>
             </div>
             <div className="flex flex-wrap gap-2.5">
               <button
@@ -568,7 +581,7 @@ export default function ExpensesPage() {
                 className="appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-8 text-sm font-medium text-gray-600 focus:border-blue-400 focus:outline-none cursor-pointer"
               >
                 <option value="all">All Categories</option>
-                {categories.map((cat) => (
+                {expenseCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>

@@ -5,14 +5,14 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   buildPaidLineItemsFromRecords,
-  sendStudentInvoiceViaWhatsApp,
+  sendStudentInvoicePdfViaWhatsApp,
 } from "@/lib/whatsappUtils";
 import type { Hostel, Student } from "@/types/database";
 import { currentYearMonth } from "@/lib/utils";
 
 type Props = {
   student: Student;
-  hostel: Pick<Hostel, "id" | "name" | "currency" | "contact_phone">;
+  hostel: Pick<Hostel, "id" | "name" | "currency" | "contact_phone" | "address">;
   billingMonth?: string;
   className?: string;
 };
@@ -43,20 +43,23 @@ export function StudentWhatsAppButton({ student, hostel, billingMonth, className
       const invoiceCode = rent?.invoice_code ?? mess?.invoice_code ?? null;
       const lineItems = buildPaidLineItemsFromRecords(student, rent, mess);
       const paymentDate = rent?.payment_date ?? mess?.payment_date ?? null;
+      const paymentMethod = rent?.payment_method ?? mess?.payment_method ?? null;
+      const invoiceNotes = rent?.invoice_notes ?? mess?.invoice_notes ?? null;
 
-      if (lineItems.length === 0) {
-        alert("No paid invoice lines found for this student.");
+      if (!invoiceCode || lineItems.length === 0) {
+        alert("No paid invoice found for this student.");
         return;
       }
 
-      sendStudentInvoiceViaWhatsApp({
+      await sendStudentInvoicePdfViaWhatsApp({
         hostel,
         student,
         billingMonthDate,
         invoiceCode,
-        status: "paid",
         lineItems,
         paymentDate,
+        paymentMethod,
+        invoiceNotes,
       });
     } finally {
       setLoading(false);
@@ -68,7 +71,7 @@ export function StudentWhatsAppButton({ student, hostel, billingMonth, className
       type="button"
       onClick={handleClick}
       disabled={loading}
-      title="Send paid invoice to parent on WhatsApp"
+      title="Send invoice PDF to parent on WhatsApp"
       className={
         className ??
         "inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-100 transition-all cursor-pointer disabled:opacity-60"
