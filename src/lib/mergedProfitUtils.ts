@@ -1,9 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FinancialChartPoint } from "@/types/database";
-<<<<<<< HEAD
 import { getCombinedInvoiceStatus } from "@/lib/studentInvoice";
-=======
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
 
 export type MergedHostelSummary = {
   hostel_id: string;
@@ -15,7 +12,6 @@ export type MergedHostelSummary = {
   other_expenses: number;
 };
 
-<<<<<<< HEAD
 export type StudentBillingRow = {
   hostel_name: string;
   student_name: string;
@@ -28,26 +24,11 @@ export type StudentBillingRow = {
   invoice_code: string | null;
 };
 
-=======
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
 export type MergedProfitMonthlyReport = {
   billing_month: string;
   currency: string;
   hostel_summaries: MergedHostelSummary[];
-<<<<<<< HEAD
   student_billing: StudentBillingRow[];
-=======
-  student_payments: {
-    hostel_name: string;
-    student_name: string;
-    student_code: string;
-    fee_type: string;
-    amount: number;
-    status: string;
-    payment_date: string | null;
-    invoice_code: string | null;
-  }[];
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
   staff_payments: {
     hostel_name: string;
     employee_name: string;
@@ -81,7 +62,6 @@ export type MergedProfitMonthlyReport = {
   }[];
 };
 
-<<<<<<< HEAD
 export function computeStudentBillingStatus(row: StudentBillingRow): string {
   const rentDue = Number(row.rent_amount) > 0;
   const messDue = Number(row.mess_amount) > 0;
@@ -105,9 +85,7 @@ export function groupStudentBillingByHostel(rows: StudentBillingRow[]) {
   return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-export function groupExpensesByHostel(
-  rows: MergedProfitMonthlyReport["expenses"]
-) {
+export function groupExpensesByHostel(rows: MergedProfitMonthlyReport["expenses"]) {
   const map = new Map<string, MergedProfitMonthlyReport["expenses"]>();
   for (const row of rows) {
     const list = map.get(row.hostel_name) ?? [];
@@ -117,8 +95,6 @@ export function groupExpensesByHostel(
   return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-=======
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
 export function summarizeHostelRow(row: MergedHostelSummary) {
   const totalIncome = Number(row.rent_collected) + Number(row.mess_collected);
   const totalExpenses =
@@ -136,13 +112,16 @@ export function summarizeMergedReport(report: MergedProfitMonthlyReport) {
   let grandIncome = 0;
   let grandExpenses = 0;
 
-  for (const row of report.hostel_summaries) {
+  for (const row of report.hostel_summaries ?? []) {
     const s = summarizeHostelRow(row);
     grandIncome += s.totalIncome;
     grandExpenses += s.totalExpenses;
   }
 
-  const ledgerTotal = report.shared_ledger.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const ledgerTotal = (report.shared_ledger ?? []).reduce(
+    (sum, row) => sum + Number(row.amount || 0),
+    0
+  );
   grandExpenses += ledgerTotal;
 
   return {

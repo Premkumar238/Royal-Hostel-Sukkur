@@ -1,5 +1,4 @@
 import type { MergedProfitMonthlyReport } from "@/lib/mergedProfitUtils";
-<<<<<<< HEAD
 import {
   computeStudentBillingStatus,
   groupExpensesByHostel,
@@ -7,9 +6,6 @@ import {
   summarizeHostelRow,
   summarizeMergedReport,
 } from "@/lib/mergedProfitUtils";
-=======
-import { summarizeHostelRow, summarizeMergedReport } from "@/lib/mergedProfitUtils";
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
 import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
 
 async function loadPdfScripts() {
@@ -46,10 +42,12 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   const monthLabel = formatMonth(report.billing_month);
   const totals = summarizeMergedReport(report);
   const primaryColor: [number, number, number] = [37, 99, 235];
-<<<<<<< HEAD
   const studentBilling = report.student_billing ?? [];
-=======
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
+  const hostelSummaries = report.hostel_summaries ?? [];
+  const staffPayments = report.staff_payments ?? [];
+  const expenses = report.expenses ?? [];
+  const messExpenses = report.mess_expenses ?? [];
+  const sharedLedger = report.shared_ledger ?? [];
 
   doc.setFillColor(...primaryColor);
   doc.rect(0, 0, 210, 28, "F");
@@ -105,7 +103,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   addSectionTable(
     "Hostel Summary",
     ["Hostel", "Rent", "Mess", "Staff", "Mess Ops", "Other Exp.", "Net Profit"],
-    report.hostel_summaries.map((row) => {
+    hostelSummaries.map((row) => {
       const s = summarizeHostelRow(row);
       return [
         row.hostel_name,
@@ -119,7 +117,6 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     })
   );
 
-<<<<<<< HEAD
   for (const [hostelName, rows] of groupStudentBillingByHostel(studentBilling)) {
     addSectionTable(
       `Student Billing — ${hostelName}`,
@@ -139,25 +136,11 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
       })
     );
   }
-=======
-  addSectionTable(
-    "Student Payments (Rent + Mess)",
-    ["Hostel", "Student", "Type", "Amount", "Status", "Paid On"],
-    report.student_payments.map((p) => [
-      p.hostel_name,
-      `${p.student_name} (${p.student_code})`,
-      p.fee_type,
-      money(p.amount, currency),
-      p.status,
-      p.payment_date ? formatDate(p.payment_date) : "—",
-    ])
-  );
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
 
   addSectionTable(
     "Staff Salaries",
     ["Hostel", "Employee", "Role", "Amount", "Date"],
-    report.staff_payments.map((p) => [
+    staffPayments.map((p) => [
       p.hostel_name,
       p.employee_name,
       p.role,
@@ -166,8 +149,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     ])
   );
 
-<<<<<<< HEAD
-  for (const [hostelName, rows] of groupExpensesByHostel(report.expenses)) {
+  for (const [hostelName, rows] of groupExpensesByHostel(expenses)) {
     addSectionTable(
       `Operating Expenses — ${hostelName}`,
       ["Title", "Category", "Vendor", "Amount", "Date"],
@@ -181,45 +163,23 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     );
   }
 
-  const messTotal = report.mess_expenses.reduce((sum, m) => sum + Number(m.amount || 0), 0);
+  const messTotal = messExpenses.reduce((sum, m) => sum + Number(m.amount || 0), 0);
   addSectionTable(
     `Mess Operating Expenses — Both Hostels (Total: ${money(messTotal, currency)})`,
     ["Description", "Type", "Amount", "Date", "Hostel"],
-    report.mess_expenses.map((m) => [
-=======
-  addSectionTable(
-    "Operating Expenses",
-    ["Hostel", "Title", "Category", "Amount", "Date"],
-    report.expenses.map((e) => [
-      e.hostel_name,
-      e.title,
-      e.category,
-      money(e.amount, currency),
-      formatDate(e.expense_date),
-    ])
-  );
-
-  addSectionTable(
-    "Mess Operating Expenses",
-    ["Hostel", "Description", "Type", "Amount", "Date"],
-    report.mess_expenses.map((m) => [
-      m.hostel_name,
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
+    messExpenses.map((m) => [
       m.description || "—",
       m.expense_type || "—",
       money(m.amount, currency),
       formatDate(m.expense_date),
-<<<<<<< HEAD
       m.hostel_name,
-=======
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
     ])
   );
 
   addSectionTable(
     "Shared Ledger (Both Hostels)",
     ["Hostel", "Vendor", "Amount", "Date", "Notes"],
-    report.shared_ledger.map((l) => [
+    sharedLedger.map((l) => [
       l.hostel_name,
       l.vendor,
       money(l.amount, currency),
