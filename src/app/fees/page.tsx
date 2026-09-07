@@ -9,6 +9,7 @@ import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentWhatsAppButton } from "@/components/ui/StudentWhatsAppButton";
 import { formatCurrency, formatDate, currentYearMonth } from "@/lib/utils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
@@ -279,16 +280,25 @@ function FeesPageContent() {
                       {formatCurrency(row.total, currentHostel?.currency)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {canPayRow(row) ? (
-                        <Link
-                          href={`/fees/pay?studentId=${row.student.id}&month=${billingMonth}`}
-                          className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                        >
-                          Pay
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {currentHostel && (
+                          <StudentWhatsAppButton
+                            student={row.student}
+                            hostel={currentHostel}
+                            billingMonth={billingMonth}
+                          />
+                        )}
+                        {canPayRow(row) ? (
+                          <Link
+                            href={`/fees/pay?studentId=${row.student.id}&month=${billingMonth}`}
+                            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                          >
+                            Pay
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

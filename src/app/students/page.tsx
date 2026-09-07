@@ -10,6 +10,7 @@ import { uploadStudentDocument } from "@/lib/studentUpload";
 import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { StudentWhatsAppButton } from "@/components/ui/StudentWhatsAppButton";
 import { formatCurrency } from "@/lib/utils";
 import type { Student, StudentCategory, StudentOrigin, StudentStatus } from "@/types/database";
 import {
@@ -565,6 +566,9 @@ function StudentsPageContent() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {currentHostel && (
+                            <StudentWhatsAppButton student={student} hostel={currentHostel} />
+                          )}
                           <button
                             onClick={() => openEditModal(student)}
                             className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-all cursor-pointer"
