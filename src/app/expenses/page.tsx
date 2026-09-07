@@ -6,7 +6,11 @@ import { Header } from "@/components/layout/Header";
 import { useHostel } from "@/contexts/HostelContext";
 import { createClient } from "@/lib/supabase/client";
 import { STAFF_ROLES, ensureStaffCategory, isSalaryPaidForMonth } from "@/lib/staffUtils";
-import { createLinkedMessExpenseRecord } from "@/lib/messExpenseUtils";
+import {
+  addSharedDailyMessExpense,
+  deleteSharedMessExpense,
+  fetchSharedMessExpenses,
+} from "@/lib/sharedMessUtils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { formatCurrency, formatDate, formatMonth, currentYearMonth } from "@/lib/utils";
 import type { Employee, EmployeeRole, Expense, MessExpense } from "@/types/database";
@@ -44,7 +48,6 @@ export default function ExpensesPage() {
   const [showLogModal, setShowLogModal] = useState(false);
   const [showCatModal, setShowCatModal] = useState(false);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
-  const [showInitialMessModal, setShowInitialMessModal] = useState(false);
   const [showDailyMessModal, setShowDailyMessModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
 
@@ -62,8 +65,6 @@ export default function ExpensesPage() {
   const [employeePhone, setEmployeePhone] = useState("");
 
   const [messBillingMonth, setMessBillingMonth] = useState(currentYearMonth());
-  const [initialMessAmount, setInitialMessAmount] = useState<number | "">("");
-  const [initialMessDescription, setInitialMessDescription] = useState("");
   const [dailyMessAmount, setDailyMessAmount] = useState<number | "">("");
   const [dailyMessDate, setDailyMessDate] = useState(new Date().toISOString().split("T")[0]);
   const [dailyMessDescription, setDailyMessDescription] = useState("");
@@ -75,7 +76,7 @@ export default function ExpensesPage() {
     if (!currentHostel) return;
     setLoading(true);
 
-    const [expRes, catRes, empRes, messRes] = await Promise.all([
+    const [expRes, catRes, empRes, messResult] = await Promise.all([
       supabase
         .from("expenses")
         .select("*, expense_categories(name)")
@@ -92,18 +93,13 @@ export default function ExpensesPage() {
         .eq("hostel_id", currentHostel.id)
         .eq("status", "active")
         .order("full_name", { ascending: true }),
-      supabase
-        .from("mess_expenses")
-        .select("*")
-        .eq("hostel_id", currentHostel.id)
-        .eq("billing_month", messBillingMonthDate)
-        .order("expense_date", { ascending: true }),
+      fetchSharedMessExpenses(supabase, messBillingMonthDate),
     ]);
 
     if (expRes.data) setExpenses(expRes.data as unknown as Expense[]);
     if (catRes.data) setCategories(catRes.data as ExpenseCategory[]);
     if (empRes.data) setEmployees(empRes.data as Employee[]);
-    if (messRes.data) setMessExpenses(messRes.data as MessExpense[]);
+    setMessExpenses(messResult.data);
 
     setLoading(false);
   }, [currentHostel, messBillingMonthDate, supabase]);
@@ -251,100 +247,15 @@ export default function ExpensesPage() {
     else alert(error.message);
   };
 
-  const initialMessExpense = messExpenses.find((item) => item.expense_type === "initial") ?? null;
-  const dailyMessExpenses = messExpenses.filter((item) => item.expense_type === "daily");
-  const dailyMessTotal = dailyMessExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
-  const messGrandTotal =
-    Number(initialMessExpense?.amount || 0) + dailyMessTotal;
+  const dailyMessTotal = messExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
   const salaryMonth = currentYearMonth();
-
-  const openInitialMessModal = () => {
-    setInitialMessAmount(initialMessExpense?.amount ?? "");
-    setInitialMessDescription(initialMessExpense?.description ?? "");
-    setShowInitialMessModal(true);
-  };
 
   const openDailyMessModal = () => {
     setDailyMessAmount("");
     setDailyMessDate(new Date().toISOString().split("T")[0]);
     setDailyMessDescription("");
     setShowDailyMessModal(true);
-  };
-
-  const handleSaveInitialMess = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentHostel) return;
-    setFormLoading(true);
-
-    const amount = Number(initialMessAmount) || 0;
-    const expenseDate = messBillingMonthDate;
-
-    if (initialMessExpense) {
-      if (initialMessExpense.expense_id) {
-        await supabase
-          .from("expenses")
-          .update({
-            amount,
-            description: initialMessDescription.trim() || null,
-            expense_date: expenseDate,
-          })
-          .eq("id", initialMessExpense.expense_id);
-      }
-
-      const { error } = await supabase
-        .from("mess_expenses")
-        .update({
-          amount,
-          description: initialMessDescription.trim() || null,
-          expense_date: expenseDate,
-        })
-        .eq("id", initialMessExpense.id);
-
-      setFormLoading(false);
-      if (!error) {
-        setShowInitialMessModal(false);
-        fetchData();
-      } else {
-        alert(error.message);
-      }
-      return;
-    }
-
-    const { expenseId, error: expenseError } = await createLinkedMessExpenseRecord(supabase, {
-      hostelId: currentHostel.id,
-      type: "initial",
-      billingMonth: messBillingMonthDate,
-      expenseDate,
-      amount,
-      description: initialMessDescription.trim() || null,
-    });
-
-    if (expenseError) {
-      setFormLoading(false);
-      alert(expenseError);
-      return;
-    }
-
-    const { error } = await supabase.from("mess_expenses").insert([
-      {
-        hostel_id: currentHostel.id,
-        expense_type: "initial",
-        billing_month: messBillingMonthDate,
-        expense_date: expenseDate,
-        amount,
-        description: initialMessDescription.trim() || null,
-        expense_id: expenseId,
-      },
-    ]);
-
-    setFormLoading(false);
-    if (!error) {
-      setShowInitialMessModal(false);
-      fetchData();
-    } else {
-      alert(error.message);
-    }
   };
 
   const handleAddDailyMess = async (e: React.FormEvent) => {
@@ -361,32 +272,12 @@ export default function ExpensesPage() {
       return;
     }
 
-    const { expenseId, error: expenseError } = await createLinkedMessExpenseRecord(supabase, {
-      hostelId: currentHostel.id,
-      type: "daily",
-      billingMonth: messBillingMonthDate,
+    const { error } = await addSharedDailyMessExpense(supabase, {
+      billingMonthDate: messBillingMonthDate,
       expenseDate: dailyMessDate,
       amount,
       description: dailyMessDescription.trim() || null,
     });
-
-    if (expenseError) {
-      setFormLoading(false);
-      alert(expenseError);
-      return;
-    }
-
-    const { error } = await supabase.from("mess_expenses").insert([
-      {
-        hostel_id: currentHostel.id,
-        expense_type: "daily",
-        billing_month: messBillingMonthDate,
-        expense_date: dailyMessDate,
-        amount,
-        description: dailyMessDescription.trim() || null,
-        expense_id: expenseId,
-      },
-    ]);
 
     setFormLoading(false);
     if (!error) {
@@ -395,20 +286,16 @@ export default function ExpensesPage() {
       setDailyMessDescription("");
       fetchData();
     } else {
-      alert(error.message);
+      alert(error);
     }
   };
 
   const handleDeleteMessExpense = async (item: MessExpense) => {
     if (!confirm("Delete this mess expense record?")) return;
 
-    if (item.expense_id) {
-      await supabase.from("expenses").delete().eq("id", item.expense_id);
-    }
-
-    const { error } = await supabase.from("mess_expenses").delete().eq("id", item.id);
+    const { error } = await deleteSharedMessExpense(supabase, item.id);
     if (!error) fetchData();
-    else alert(error.message);
+    else alert(error);
   };
 
   const handleDeleteExpense = async (id: string) => {
@@ -538,7 +425,7 @@ export default function ExpensesPage() {
             <div>
               <h2 className="text-sm font-bold text-gray-900">Mess Expense System</h2>
               <p className="text-xs text-gray-400 mt-0.5">
-                Add initial monthly mess budget, then record daily mess spending
+                Shared mess spending for both hostels — same records on Hostel 1 and Hostel 2 logins
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
@@ -547,13 +434,6 @@ export default function ExpensesPage() {
                 value={messBillingMonth}
                 onChange={setMessBillingMonth}
               />
-              <button
-                onClick={openInitialMessModal}
-                className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 cursor-pointer"
-              >
-                <Plus className="h-4 w-4" />
-                <span>{initialMessExpense ? "Update Initial Expense" : "Add Initial Expense"}</span>
-              </button>
               <button
                 onClick={openDailyMessModal}
                 className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-orange-700 cursor-pointer"
@@ -564,18 +444,7 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                Initial Monthly Expense
-              </span>
-              <p className="mt-1 text-2xl font-bold text-amber-900">
-                {initialMessExpense
-                  ? formatCurrency(initialMessExpense.amount, currentHostel?.currency)
-                  : "Not set"}
-              </p>
-              <p className="text-xs text-amber-700/80 mt-1">{formatMonth(messBillingMonthDate)}</p>
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-sm">
               <span className="text-[10px] font-bold uppercase tracking-wider text-orange-700">
                 Daily Expenses Total
@@ -583,16 +452,20 @@ export default function ExpensesPage() {
               <p className="mt-1 text-2xl font-bold text-orange-800">
                 {formatCurrency(dailyMessTotal, currentHostel?.currency)}
               </p>
-              <p className="text-xs text-orange-700/80 mt-1">{dailyMessExpenses.length} daily entries</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                Total Mess Spend
-              </span>
-              <p className="mt-1 text-2xl font-bold text-gray-900">
-                {formatCurrency(messGrandTotal, currentHostel?.currency)}
+              <p className="text-xs text-orange-700/80 mt-1">
+                {messExpenses.length} entries · {formatMonth(messBillingMonthDate)}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Initial + daily for this month</p>
+            </div>
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                Shared Across Hostels
+              </span>
+              <p className="mt-1 text-sm font-semibold text-indigo-900">
+                Royal Girls Hostel 1 + Hostel 2
+              </p>
+              <p className="text-xs text-indigo-700/80 mt-1">
+                Add or view from either login
+              </p>
             </div>
           </div>
 
@@ -605,7 +478,7 @@ export default function ExpensesPage() {
               <UtensilsCrossed className="mx-auto h-7 w-7 text-gray-300 mb-2" />
               <p className="text-sm font-medium text-gray-500">No mess expenses for this month</p>
               <p className="text-xs text-gray-400 mt-1">
-                Start with the initial monthly mess expense, then add daily expenses.
+                Click Add Daily Expense to record mess spending.
               </p>
             </div>
           ) : (
@@ -614,7 +487,6 @@ export default function ExpensesPage() {
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      <th className="px-6 py-4">Type</th>
                       <th className="px-6 py-4">Date</th>
                       <th className="px-6 py-4">Description</th>
                       <th className="px-6 py-4">Amount</th>
@@ -624,19 +496,8 @@ export default function ExpensesPage() {
                   <tbody className="divide-y divide-gray-100">
                     {messExpenses.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                              item.expense_type === "initial"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-orange-100 text-orange-800"
-                            }`}
-                          >
-                            {item.expense_type === "initial" ? "Initial Monthly" : "Daily"}
-                          </span>
-                        </td>
                         <td className="px-6 py-4 text-gray-600">{formatDate(item.expense_date)}</td>
-                        <td className="px-6 py-4 text-gray-700">{item.description || "—"}</td>
+                        <td className="px-6 py-4 text-gray-700">{item.description || "Daily Mess Expense"}</td>
                         <td className="px-6 py-4 font-semibold text-red-600">
                           -{formatCurrency(item.amount, currentHostel?.currency)}
                         </td>
@@ -916,55 +777,6 @@ export default function ExpensesPage() {
               </div>
               <button type="submit" disabled={formLoading} className="w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer mt-2">
                 {formLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Log Expense Details"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Initial Mess Expense Modal */}
-      {showInitialMessModal && (
-        <div className="modal-overlay">
-          <div className="modal-backdrop" onClick={() => setShowInitialMessModal(false)} />
-          <div className="modal-panel max-w-md">
-            <button onClick={() => setShowInitialMessModal(false)} className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
-              <X className="h-4.5 w-4.5" />
-            </button>
-            <h3 className="text-base font-bold text-gray-900 mb-2">
-              {initialMessExpense ? "Update Initial Mess Expense" : "Add Initial Mess Expense"}
-            </h3>
-            <p className="text-xs text-gray-400 mb-6">{formatMonth(messBillingMonthDate)}</p>
-
-            <form onSubmit={handleSaveInitialMess} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                  Initial Amount
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={initialMessAmount}
-                    onChange={(e) => setInitialMessAmount(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm focus:border-blue-400 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                  Description
-                </label>
-                <textarea
-                  value={initialMessDescription}
-                  onChange={(e) => setInitialMessDescription(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg border border-gray-200 bg-white py-2 px-3 text-sm focus:border-blue-400 focus:outline-none resize-none"
-                />
-              </div>
-              <button type="submit" disabled={formLoading} className="w-full rounded-lg bg-amber-600 py-3 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60 cursor-pointer">
-                {formLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : initialMessExpense ? "Update Initial Expense" : "Save Initial Expense"}
               </button>
             </form>
           </div>
