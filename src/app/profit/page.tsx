@@ -3,17 +3,26 @@
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
-import { useHostel } from "@/contexts/HostelContext";
-import { createClient } from "@/lib/supabase/client";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { StatCard } from "@/components/ui/StatCard";
-import { formatCurrency, calcProfitMargin } from "@/lib/utils";
+import { formatCurrency, calcProfitMargin, currentYearMonth, formatMonth } from "@/lib/utils";
 import type { FinancialChartPoint } from "@/types/database";
 import {
   TrendingUp,
   Coins,
   TrendingDown,
   Percent,
+  Download,
+  Loader2,
+  Building2,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import {
+  fetchMergedFinancialChart,
+  fetchMergedProfitMonthlyReport,
+  fetchMergedProfitOverview,
+} from "@/lib/mergedProfitUtils";
+import { downloadMergedProfitReportPDF } from "@/lib/mergedProfitPdf";
 import {
   BarChart,
   Bar,
@@ -38,77 +47,69 @@ interface CategoryExpense {
 }
 
 export default function ProfitPage() {
-  const { currentHostel } = useHostel();
   const [loading, setLoading] = useState(true);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [billingMonth, setBillingMonth] = useState(currentYearMonth());
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
   const [chartData, setChartData] = useState<FinancialChartPoint[]>([]);
   const [categoryData, setCategoryData] = useState<CategoryExpense[]>([]);
 
   const supabase = createClient();
+  const billingMonthDate = `${billingMonth}-01`;
+  const currency = "PKR";
 
   useEffect(() => {
-    if (!currentHostel) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchFinancialData = async () => {
+    const load = async () => {
       setLoading(true);
+      setError(null);
 
-      const [{ data: trendData }, { data: expenseData }, { data: incomeData }] =
-        await Promise.all([
-          supabase.rpc("get_financial_chart", {
-            p_hostel_id: currentHostel.id,
-            p_months: 12,
-          }),
-          supabase
-            .from("expenses")
-            .select("amount, category_id, expense_categories(name)")
-            .eq("hostel_id", currentHostel.id),
-          supabase
-            .from("fee_records")
-            .select("amount")
-            .eq("hostel_id", currentHostel.id)
-            .in("status", ["paid", "partial"]),
-        ]);
+      const [overview, chart] = await Promise.all([
+        fetchMergedProfitOverview(supabase),
+        fetchMergedFinancialChart(supabase, 12),
+      ]);
 
-      if (incomeData) {
-        const sumIncome = incomeData.reduce((sum, item) => sum + Number(item.amount), 0);
-        setTotalIncome(sumIncome);
+      if (overview.error || chart.error) {
+        setError(
+          overview.error ||
+            chart.error ||
+            "Could not load merged profit data. Run the merged profit SQL migration in Supabase."
+        );
       }
 
-      if (expenseData) {
-        const sumExpense = expenseData.reduce((sum, item) => sum + Number(item.amount), 0);
-        setTotalExpense(sumExpense);
-
-        // Aggregate by category
-        const catMap: Record<string, number> = {};
-        expenseData.forEach((exp) => {
-          const cat = exp.expense_categories as { name: string } | { name: string }[] | null;
-          const name = (Array.isArray(cat) ? cat[0]?.name : cat?.name) || "General";
-          catMap[name] = (catMap[name] || 0) + Number(exp.amount);
-        });
-
-        const formattedCategories = Object.keys(catMap).map((key) => ({
-          name: key,
-          value: catMap[key],
-        }));
-        setCategoryData(formattedCategories);
-      }
-
-      if (trendData) {
-        setChartData(trendData);
-      }
-
+      setTotalIncome(overview.totalIncome);
+      setTotalExpense(overview.totalExpense);
+      setCategoryData(overview.categoryData);
+      setChartData(chart.data);
       setLoading(false);
     };
 
-    fetchFinancialData();
-  }, [currentHostel, supabase]);
+    load();
+  }, [supabase]);
 
   const netProfit = totalIncome - totalExpense;
   const margin = calcProfitMargin(totalIncome, totalExpense);
+
+  const handleDownloadPdf = async () => {
+    setPdfLoading(true);
+    setError(null);
+    try {
+      const { data, error: reportError } = await fetchMergedProfitMonthlyReport(
+        supabase,
+        billingMonthDate
+      );
+      if (reportError || !data) {
+        setError(reportError || "Could not build monthly report.");
+        return;
+      }
+      await downloadMergedProfitReportPDF(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PDF download failed.");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   return (
     <AdminLayout>
@@ -119,40 +120,90 @@ export default function ProfitPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
         </div>
       ) : (
-        <div className="page-shell">
-          {/* Stats Grid */}
+        <div className="page-shell space-y-4">
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+            <div className="flex items-start gap-2">
+              <Building2 className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold">Combined profit — Royal Girls Hostel 1 + Hostel 2</p>
+                <p className="text-xs text-indigo-800 mt-0.5">
+                  Main dashboard stays separate per hostel. This page merges income, expenses, ledger,
+                  staff, and student payments for both properties.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+              {error}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Monthly merged report</h2>
+              <p className="text-xs text-gray-400">
+                PDF includes ledgers, expenses, staff, student rent + mess, and final profit for{" "}
+                {formatMonth(billingMonthDate)}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <MonthPicker
+                id="profit-report-month"
+                value={billingMonth}
+                onChange={setBillingMonth}
+                className="shrink-0 sm:w-auto"
+              />
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
+              >
+                {pdfLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Download PDF
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
-              title="Aggregate Income"
-              value={formatCurrency(totalIncome, currentHostel?.currency)}
+              title="Combined Income"
+              value={formatCurrency(totalIncome, currency)}
               icon={Coins}
-              subtitle="All time rent collected"
+              subtitle="Both hostels — all time collected fees"
             />
             <StatCard
-              title="Aggregate Expense"
-              value={formatCurrency(totalExpense, currentHostel?.currency)}
+              title="Combined Expenses"
+              value={formatCurrency(totalExpense, currency)}
               icon={TrendingDown}
-              subtitle="All time logged expenses"
+              subtitle="Both hostels — all logged expenses"
             />
             <StatCard
-              title="Cumulative Net Profit"
-              value={formatCurrency(netProfit, currentHostel?.currency)}
+              title="Combined Net Profit"
+              value={formatCurrency(netProfit, currency)}
               icon={TrendingUp}
-              subtitle={netProfit >= 0 ? "Profit ledger positive" : "Loss ledger warning"}
+              subtitle={netProfit >= 0 ? "Positive combined ledger" : "Combined loss warning"}
             />
             <StatCard
               title="Net Profit Margin"
               value={`${margin}%`}
               icon={Percent}
-              subtitle="Profit margin of operations"
+              subtitle="Combined margin across both hostels"
             />
           </div>
 
-          {/* Recharts Trend Charts */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Monthly Financial Trend</h3>
-              <p className="text-xs text-gray-400 mb-4">Comparison of monthly income and operating expenses</p>
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                Monthly Financial Trend (Merged)
+              </h3>
+              <p className="text-xs text-gray-400 mb-4">Hostel 1 + Hostel 2 income vs expenses</p>
               <div className="h-56 sm:h-64 lg:h-80 min-h-[14rem]">
                 {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -188,8 +239,8 @@ export default function ProfitPage() {
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Expense Breakdown</h3>
-              <p className="text-xs text-gray-400 mb-4">Distribution across categories</p>
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">Expense Breakdown (Merged)</h3>
+              <p className="text-xs text-gray-400 mb-4">Both hostels — by category</p>
               <div className="h-64 flex-1 relative flex items-center justify-center">
                 {categoryData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -226,7 +277,7 @@ export default function ProfitPage() {
                       <span className="text-gray-600">{d.name}</span>
                     </div>
                     <span className="font-semibold text-gray-900">
-                      {formatCurrency(d.value, currentHostel?.currency)}
+                      {formatCurrency(d.value, currency)}
                     </span>
                   </div>
                 ))}
@@ -234,20 +285,31 @@ export default function ProfitPage() {
             </div>
           </div>
 
-          {/* Bar Chart breakdown */}
           {chartData.length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Net Monthly Profit Margin Bar</h3>
-              <p className="text-xs text-gray-400 mb-4">Historical visual profit ledger</p>
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                Net Monthly Profit (Merged)
+              </h3>
+              <p className="text-xs text-gray-400 mb-4">Combined profit bar chart</p>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData.map(d => ({ ...d, profit: d.income - d.expenses }))}>
+                  <BarChart
+                    data={chartData.map((d) => ({
+                      ...d,
+                      profit: Number(d.income) - Number(d.expenses),
+                    }))}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                     <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#9ca3af" />
                     <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="profit" fill="#10b981" radius={[4, 4, 0, 0]} name="Net Profit Margin" />
+                    <Bar
+                      dataKey="profit"
+                      fill="#10b981"
+                      radius={[4, 4, 0, 0]}
+                      name="Net Profit"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
