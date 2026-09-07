@@ -535,7 +535,7 @@ export default function ExpensesPage() {
             <div>
               <h2 className="text-sm font-bold text-gray-900">Expense Records</h2>
               <p className="text-xs text-gray-400 mt-0.5">
-                Hostel operations only — mess and ledger entries are tracked separately
+                Hostel operations only — salaries, mess, and ledger are tracked separately
               </p>
             </div>
             <div className="flex flex-wrap gap-2.5">

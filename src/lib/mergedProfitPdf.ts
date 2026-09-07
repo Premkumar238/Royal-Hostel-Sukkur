@@ -191,5 +191,56 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     ])
   );
 
+  const van = report.van ?? {
+    payments: [],
+    expenses: [],
+    total_revenue: 0,
+    total_expenses: 0,
+    net_profit: 0,
+  };
+
+  if (y > 230) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setTextColor(109, 40, 217);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Van Service — Separate from Hostel Profit", 14, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(17, 24, 39);
+  doc.text(`Van Revenue: ${money(van.total_revenue, currency)}`, 14, y);
+  y += 5;
+  doc.text(`Van Expenses: ${money(van.total_expenses, currency)}`, 14, y);
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(van.net_profit >= 0 ? 22 : 220, van.net_profit >= 0 ? 101 : 38, van.net_profit >= 0 ? 52 : 38);
+  doc.text(`Van Net Profit: ${money(van.net_profit, currency)}`, 14, y);
+  y += 8;
+
+  addSectionTable(
+    "Van Passenger Payments",
+    ["Passenger", "Date", "Amount", "Notes"],
+    (van.payments ?? []).map((p) => [
+      p.passenger_name,
+      formatDate(p.payment_date),
+      money(p.amount, currency),
+      p.notes || "—",
+    ])
+  );
+
+  addSectionTable(
+    "Van Expenses",
+    ["Date", "Description", "Amount"],
+    (van.expenses ?? []).map((e) => [
+      formatDate(e.expense_date),
+      e.description || "Van expense",
+      money(e.amount, currency),
+    ])
+  );
+
   doc.save(`Merged-Profit-Report-${report.billing_month.slice(0, 7)}.pdf`);
 }

@@ -147,6 +147,35 @@ export interface MessExpense {
   created_at: string;
 }
 
+export interface VanPayment {
+  id: string;
+  hostel_id: string;
+  passenger_name: string;
+  billing_month: string;
+  payment_date: string;
+  amount: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface VanExpense {
+  id: string;
+  hostel_id: string;
+  billing_month: string;
+  expense_date: string;
+  amount: number;
+  description: string | null;
+  created_at: string;
+}
+
+export interface VanMonthlySummary {
+  payments: VanPayment[];
+  expenses: VanExpense[];
+  total_revenue: number;
+  total_expenses: number;
+  net_profit: number;
+}
+
 export interface FeeRecord {
   id: string;
   hostel_id: string;

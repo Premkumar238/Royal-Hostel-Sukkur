@@ -145,7 +145,7 @@ export default function ProfitPage() {
               <h2 className="text-sm font-bold text-gray-900">Monthly merged report</h2>
               <p className="text-xs text-gray-400">
                 PDF includes ledgers, expenses, staff, student rent + mess, and final profit for{" "}
-                {formatMonth(billingMonthDate)}
+                {formatMonth(billingMonthDate)}. Van profit is shown separately at the end.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">

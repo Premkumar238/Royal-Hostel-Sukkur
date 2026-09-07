@@ -62,6 +62,22 @@ export type MergedProfitMonthlyReport = {
     expense_date: string;
     description: string | null;
   }[];
+  van: {
+    payments: {
+      passenger_name: string;
+      payment_date: string;
+      amount: number;
+      notes: string | null;
+    }[];
+    expenses: {
+      expense_date: string;
+      amount: number;
+      description: string | null;
+    }[];
+    total_revenue: number;
+    total_expenses: number;
+    net_profit: number;
+  };
 };
 
 export function computeStudentBillingStatus(row: StudentBillingRow): string {

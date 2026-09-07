@@ -22,7 +22,17 @@ export function isLedgerExpenseRecord(expense: ExpenseLike): boolean {
   );
 }
 
-/** Regular hostel expense records — excludes mess and shared ledger entries. */
+/** Salary payments logged via Staff Management — not operational expense records. */
+export function isSalaryExpenseRecord(expense: ExpenseLike): boolean {
+  if (expense.employee_id) return true;
+  return expense.title.toLowerCase().includes("salary");
+}
+
+/** Regular hostel expense records — excludes mess, ledger, and salary entries. */
 export function isOperationalExpenseRecord(expense: ExpenseLike): boolean {
-  return !isMessExpenseRecord(expense) && !isLedgerExpenseRecord(expense);
+  return (
+    !isMessExpenseRecord(expense) &&
+    !isLedgerExpenseRecord(expense) &&
+    !isSalaryExpenseRecord(expense)
+  );
 }
