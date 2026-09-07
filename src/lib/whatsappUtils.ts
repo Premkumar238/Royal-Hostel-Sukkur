@@ -3,6 +3,8 @@ import { hasAnyMess } from "@/lib/messUtils";
 import { getInvoiceTotal } from "@/lib/studentInvoice";
 import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
 
+export type WhatsAppRecipient = "parent" | "student";
+
 /** Normalize Pakistani phone numbers for wa.me (digits only, 92 country code). */
 export function normalizeWhatsAppPhone(raw: string | null | undefined): string | null {
   if (!raw?.trim()) return null;
@@ -38,6 +40,16 @@ export function resolveParentPhone(student: Student): string | null {
   return null;
 }
 
+/** Student's own mobile contact. */
+export function resolveStudentPhone(student: Student): string | null {
+  if (normalizeWhatsAppPhone(student.phone)) return student.phone!.trim();
+  return null;
+}
+
+export function resolveContactPhone(student: Student, recipient: WhatsAppRecipient): string | null {
+  return recipient === "student" ? resolveStudentPhone(student) : resolveParentPhone(student);
+}
+
 export function buildPaidLineItemsFromRecords(
   student: Student,
   rentRecord: FeeRecord | null,
@@ -61,17 +73,26 @@ export function buildPaymentReceiptWhatsAppMessage(options: {
   billingMonthDate: string;
   lineItems: { description: string; amount: number }[];
   paymentDate?: string | null;
+  recipient?: WhatsAppRecipient;
 }): string {
   const { hostel, student, billingMonthDate, lineItems, paymentDate } = options;
+  const recipient = options.recipient ?? "parent";
   const total = getInvoiceTotal(lineItems);
   const monthLabel = formatMonth(billingMonthDate);
   const studentName = student.full_name ?? student.student_code;
   const fatherName = student.father_name?.trim();
 
+  const greeting =
+    recipient === "student"
+      ? `Dear ${studentName},`
+      : fatherName
+        ? `Dear ${fatherName},`
+        : "Dear Parent,";
+
   const lines = [
     `*Payment Receipt — ${monthLabel}*`,
     "",
-    fatherName ? `Dear ${fatherName},` : "Dear Parent,",
+    greeting,
     "",
     `Student: ${studentName}`,
     "",
@@ -89,10 +110,10 @@ export function buildPaymentReceiptWhatsAppMessage(options: {
   return lines.join("\n");
 }
 
-export function openWhatsAppChat(phone: string, message: string): void {
+export function openWhatsAppChat(phone: string, message: string, invalidHint?: string): void {
   const normalized = normalizeWhatsAppPhone(phone);
   if (!normalized) {
-    alert("Invalid parent phone number. Add Parents Contact No on the student profile.");
+    alert(invalidHint ?? "Invalid phone number on the student profile.");
     return;
   }
 
@@ -112,15 +133,20 @@ export function sendStudentInvoiceViaWhatsApp(options: {
   billingMonthDate: string;
   lineItems: { description: string; amount: number }[];
   paymentDate?: string | null;
+  recipient?: WhatsAppRecipient;
 }): void {
-  const parentPhone = resolveParentPhone(options.student);
-  if (!parentPhone) {
+  const recipient = options.recipient ?? "parent";
+  const contactPhone = resolveContactPhone(options.student, recipient);
+
+  if (!contactPhone) {
     alert(
-      "No parent phone number found. Edit the student and add Parents Contact No (father_phone)."
+      recipient === "student"
+        ? "No student phone number found. Edit the student and add Contact No."
+        : "No parent phone number found. Edit the student and add Parents Contact No."
     );
     return;
   }
 
-  const message = buildPaymentReceiptWhatsAppMessage(options);
-  openWhatsAppChat(parentPhone, message);
+  const message = buildPaymentReceiptWhatsAppMessage({ ...options, recipient });
+  openWhatsAppChat(contactPhone, message);
 }

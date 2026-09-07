@@ -10,8 +10,10 @@ import { uploadStudentDocument } from "@/lib/studentUpload";
 import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatCurrency } from "@/lib/utils";
-import type { Student, StudentCategory, StudentOrigin, StudentStatus } from "@/types/database";
+import { StudentWhatsAppButton } from "@/components/ui/StudentWhatsAppButton";
+import { formatCurrency, currentYearMonth } from "@/lib/utils";
+import { getCombinedInvoiceStatus } from "@/lib/studentInvoice";
+import type { FeeRecord, Student, StudentCategory, StudentOrigin, StudentStatus } from "@/types/database";
 import {
   Search,
   Plus,
@@ -156,6 +158,7 @@ function StudentsPageContent() {
   const messOnly = searchParams.get("mess") === "1";
   const { currentHostel } = useHostel();
   const [students, setStudents] = useState<Student[]>([]);
+  const [feeRecords, setFeeRecords] = useState<FeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -201,25 +204,60 @@ function StudentsPageContent() {
   const fatherCnicInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
+  const billingMonth = currentYearMonth();
+  const billingMonthDate = `${billingMonth}-01`;
 
   const fetchStudents = useCallback(async () => {
     if (!currentHostel) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("students")
-      .select("*")
-      .eq("hostel_id", currentHostel.id)
-      .order("created_at", { ascending: false });
+
+    const [{ data, error }, { data: feeData }] = await Promise.all([
+      supabase
+        .from("students")
+        .select("*")
+        .eq("hostel_id", currentHostel.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("fee_records")
+        .select("*")
+        .eq("hostel_id", currentHostel.id)
+        .eq("billing_month", billingMonthDate),
+    ]);
 
     if (!error && data) {
       setStudents(data);
     }
+    setFeeRecords(feeData ?? []);
     setLoading(false);
-  }, [currentHostel, supabase]);
+  }, [billingMonthDate, currentHostel, supabase]);
 
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
+
+  const paidStudentIds = useMemo(() => {
+    const rentByStudent = new Map(
+      feeRecords.filter((fee) => fee.fee_type === "rent").map((fee) => [fee.student_id, fee])
+    );
+    const messByStudent = new Map(
+      feeRecords.filter((fee) => fee.fee_type === "mess").map((fee) => [fee.student_id, fee])
+    );
+    const ids = new Set<string>();
+
+    for (const student of students) {
+      const rentRecord = rentByStudent.get(student.id) ?? null;
+      const messRecord = messByStudent.get(student.id) ?? null;
+      const rentAmount = Number(student.monthly_rent || 0);
+      const studentHasMess = hasAnyMess(student);
+      const invoiceStatus = getCombinedInvoiceStatus(
+        rentAmount <= 0 ? "none" : rentRecord ? rentRecord.status : "none",
+        studentHasMess ? (messRecord ? messRecord.status : "none") : "na"
+      );
+      if (invoiceStatus === "paid") ids.add(student.id);
+    }
+
+    return ids;
+  }, [students, feeRecords]);
 
   const resetForm = () => {
     setClassification("");
@@ -565,6 +603,15 @@ function StudentsPageContent() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {currentHostel && paidStudentIds.has(student.id) && (
+                            <StudentWhatsAppButton
+                              student={student}
+                              hostel={currentHostel}
+                              billingMonth={billingMonth}
+                              recipient="student"
+                              compact
+                            />
+                          )}
                           <button
                             onClick={() => openEditModal(student)}
                             className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-all cursor-pointer"

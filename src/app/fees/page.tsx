@@ -286,6 +286,7 @@ function FeesPageContent() {
                             student={row.student}
                             hostel={currentHostel}
                             billingMonth={billingMonth}
+                            recipient="parent"
                           />
                         )}
                         {canPayRow(row) ? (
