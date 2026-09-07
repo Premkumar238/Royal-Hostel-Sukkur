@@ -114,25 +114,46 @@ BEGIN
         WHERE h.id IN (SELECT get_royal_girls_hostel_ids())
       ) s
     ),
-    'student_payments', (
-      SELECT coalesce(json_agg(row_to_json(p) ORDER BY p.hostel_name, p.student_name), '[]'::json)
+    'student_billing', (
+      SELECT coalesce(json_agg(row_to_json(sb) ORDER BY sb.hostel_name, sb.student_name), '[]'::json)
       FROM (
         SELECT
           h.name AS hostel_name,
           coalesce(st.full_name, st.student_code) AS student_name,
           st.student_code,
-          fr.fee_type,
-          fr.amount,
-          fr.status,
-          fr.payment_date,
-          fr.invoice_code
-        FROM fee_records fr
-        JOIN hostels h ON h.id = fr.hostel_id
-        JOIN students st ON st.id = fr.student_id
-        WHERE fr.hostel_id IN (SELECT get_royal_girls_hostel_ids())
-          AND fr.billing_month = v_month_start
-          AND fr.status IN ('paid', 'partial')
-      ) p
+          coalesce(st.monthly_rent, 0)::numeric AS rent_amount,
+          (
+            CASE
+              WHEN NOT (
+                coalesce(st.has_mess, false)
+                OR coalesce(st.has_breakfast, false)
+                OR coalesce(st.has_lunch, false)
+                OR coalesce(st.has_dinner, false)
+              ) THEN 0::numeric
+              WHEN coalesce(st.has_mess, false) AND coalesce(st.mess_fee, 0) > 0 THEN st.mess_fee
+              ELSE
+                coalesce(st.breakfast_fee, 0) * CASE WHEN coalesce(st.has_breakfast, false) THEN 1 ELSE 0 END
+                + coalesce(st.lunch_fee, 0) * CASE WHEN coalesce(st.has_lunch, false) THEN 1 ELSE 0 END
+                + coalesce(st.dinner_fee, 0) * CASE WHEN coalesce(st.has_dinner, false) THEN 1 ELSE 0 END
+            END
+          )::numeric AS mess_amount,
+          rent_fr.status AS rent_status,
+          mess_fr.status AS mess_status,
+          coalesce(rent_fr.payment_date, mess_fr.payment_date) AS payment_date,
+          coalesce(rent_fr.invoice_code, mess_fr.invoice_code) AS invoice_code
+        FROM students st
+        JOIN hostels h ON h.id = st.hostel_id
+        LEFT JOIN fee_records rent_fr
+          ON rent_fr.student_id = st.id
+          AND rent_fr.fee_type = 'rent'
+          AND rent_fr.billing_month = v_month_start
+        LEFT JOIN fee_records mess_fr
+          ON mess_fr.student_id = st.id
+          AND mess_fr.fee_type = 'mess'
+          AND mess_fr.billing_month = v_month_start
+        WHERE st.hostel_id IN (SELECT get_royal_girls_hostel_ids())
+          AND st.status = 'active'
+      ) sb
     ),
     'staff_payments', (
       SELECT coalesce(json_agg(row_to_json(sp) ORDER BY sp.hostel_name, sp.employee_name), '[]'::json)

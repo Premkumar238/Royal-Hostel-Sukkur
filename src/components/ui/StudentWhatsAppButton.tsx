@@ -3,9 +3,10 @@
 import { MessageCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { sendStudentInvoiceViaWhatsApp } from "@/lib/whatsappUtils";
-import { getCombinedInvoiceStatus } from "@/lib/studentInvoice";
-import { hasAnyMess } from "@/lib/messUtils";
+import {
+  buildPaidLineItemsFromRecords,
+  sendStudentInvoiceViaWhatsApp,
+} from "@/lib/whatsappUtils";
 import type { Hostel, Student } from "@/types/database";
 import { currentYearMonth } from "@/lib/utils";
 
@@ -25,28 +26,37 @@ export function StudentWhatsAppButton({ student, hostel, billingMonth, className
   const handleClick = async () => {
     setLoading(true);
     try {
-      const { data: feeData } = await supabase
+      const { data: feeData, error } = await supabase
         .from("fee_records")
         .select("*")
         .eq("hostel_id", hostel.id)
         .eq("student_id", student.id)
         .eq("billing_month", billingMonthDate);
 
+      if (error) {
+        alert(`Could not load invoice: ${error.message}`);
+        return;
+      }
+
       const rent = feeData?.find((f) => f.fee_type === "rent") ?? null;
       const mess = feeData?.find((f) => f.fee_type === "mess") ?? null;
       const invoiceCode = rent?.invoice_code ?? mess?.invoice_code ?? null;
-      const rentAmount = Number(student.monthly_rent || 0);
-      const invoiceStatus = getCombinedInvoiceStatus(
-        rentAmount <= 0 ? "none" : rent ? rent.status : "none",
-        hasAnyMess(student) ? (mess ? mess.status : "none") : "na"
-      );
+      const lineItems = buildPaidLineItemsFromRecords(student, rent, mess);
+      const paymentDate = rent?.payment_date ?? mess?.payment_date ?? null;
+
+      if (lineItems.length === 0) {
+        alert("No paid invoice lines found for this student.");
+        return;
+      }
 
       sendStudentInvoiceViaWhatsApp({
         hostel,
         student,
         billingMonthDate,
         invoiceCode,
-        status: invoiceStatus === "not_generated" ? "pending" : invoiceStatus,
+        status: "paid",
+        lineItems,
+        paymentDate,
       });
     } finally {
       setLoading(false);
@@ -58,13 +68,18 @@ export function StudentWhatsAppButton({ student, hostel, billingMonth, className
       type="button"
       onClick={handleClick}
       disabled={loading}
-      title="Send invoice to parent on WhatsApp"
+      title="Send paid invoice to parent on WhatsApp"
       className={
         className ??
-        "rounded p-1.5 text-green-600 hover:bg-green-50 transition-all cursor-pointer disabled:opacity-60"
+        "inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-100 transition-all cursor-pointer disabled:opacity-60"
       }
     >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+      {loading ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <MessageCircle className="h-3.5 w-3.5" />
+      )}
+      WhatsApp
     </button>
   );
 }

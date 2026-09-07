@@ -281,7 +281,7 @@ function FeesPageContent() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {currentHostel && (
+                        {currentHostel && row.invoiceStatus === "paid" && (
                           <StudentWhatsAppButton
                             student={row.student}
                             hostel={currentHostel}
