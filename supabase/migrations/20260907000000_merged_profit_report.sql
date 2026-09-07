@@ -114,19 +114,13 @@ BEGIN
         WHERE h.id IN (SELECT get_royal_girls_hostel_ids())
       ) s
     ),
-<<<<<<< HEAD
     'student_billing', (
       SELECT coalesce(json_agg(row_to_json(sb) ORDER BY sb.hostel_name, sb.student_name), '[]'::json)
-=======
-    'student_payments', (
-      SELECT coalesce(json_agg(row_to_json(p) ORDER BY p.hostel_name, p.student_name), '[]'::json)
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
       FROM (
         SELECT
           h.name AS hostel_name,
           coalesce(st.full_name, st.student_code) AS student_name,
           st.student_code,
-<<<<<<< HEAD
           coalesce(st.monthly_rent, 0)::numeric AS rent_amount,
           (
             CASE
@@ -160,20 +154,6 @@ BEGIN
         WHERE st.hostel_id IN (SELECT get_royal_girls_hostel_ids())
           AND st.status = 'active'
       ) sb
-=======
-          fr.fee_type,
-          fr.amount,
-          fr.status,
-          fr.payment_date,
-          fr.invoice_code
-        FROM fee_records fr
-        JOIN hostels h ON h.id = fr.hostel_id
-        JOIN students st ON st.id = fr.student_id
-        WHERE fr.hostel_id IN (SELECT get_royal_girls_hostel_ids())
-          AND fr.billing_month = v_month_start
-          AND fr.status IN ('paid', 'partial')
-      ) p
->>>>>>> e833f060c6a2158933243eeaef6e1f90ac1fc2a9
     ),
     'staff_payments', (
       SELECT coalesce(json_agg(row_to_json(sp) ORDER BY sp.hostel_name, sp.employee_name), '[]'::json)
