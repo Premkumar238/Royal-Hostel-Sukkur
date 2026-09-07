@@ -189,6 +189,7 @@ function StudentsPageContent() {
   const [status, setStatus] = useState<StudentStatus>("active");
   const [joiningDate, setJoiningDate] = useState("");
   const [monthlyRent, setMonthlyRent] = useState<number | "">("");
+  const [advanceAmount, setAdvanceAmount] = useState<number | "">("");
   const [hasMess, setHasMess] = useState(false);
   const [messFee, setMessFee] = useState<number | "">("");
 
@@ -282,6 +283,7 @@ function StudentsPageContent() {
     setStatus("active");
     setJoiningDate("");
     setMonthlyRent("");
+    setAdvanceAmount("");
     setHasMess(false);
     setMessFee("");
     setStudentImageFile(null);
@@ -324,6 +326,7 @@ function StudentsPageContent() {
     setStatus(student.status);
     setJoiningDate(student.joining_date ?? "");
     setMonthlyRent(student.monthly_rent ?? "");
+    setAdvanceAmount(student.advance_amount ?? "");
     setHasMess(hasAnyMess(student));
     setMessFee(hasAnyMess(student) ? getMessTotal(student) : "");
     setStudentImageFile(null);
@@ -367,6 +370,7 @@ function StudentsPageContent() {
       emergency_contact_2: emergencyContact2.trim() || null,
       email: email.trim() || null,
       monthly_rent: monthlyRent === "" ? 0 : Number(monthlyRent),
+      advance_amount: advanceAmount === "" ? 0 : Number(advanceAmount),
       has_mess: hasMess,
       mess_fee: messAmount,
       has_breakfast: false,
@@ -559,6 +563,7 @@ function StudentsPageContent() {
                     <th className="px-6 py-4">Contact</th>
                     <th className="px-6 py-4">Monthly Rent</th>
                     <th className="px-6 py-4">Mess Fee</th>
+                    <th className="px-6 py-4">Advance</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
@@ -597,6 +602,11 @@ function StudentsPageContent() {
                         ) : (
                           <span className="text-gray-400 text-xs">No Mess</span>
                         )}
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-indigo-700">
+                        {Number(student.advance_amount || 0) > 0
+                          ? formatCurrency(student.advance_amount ?? 0)
+                          : "—"}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={student.status} />
@@ -968,6 +978,30 @@ function StudentsPageContent() {
                         className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-11 pr-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                      Security Advance (Rs.)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400 select-none">
+                        Rs.
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={advanceAmount}
+                        onChange={(e) => setAdvanceAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                        placeholder="e.g. 10000"
+                        className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-11 pr-3 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+                      />
+                    </div>
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      Amount held as security deposit. Set to 0 when the student leaves and you return the advance.
+                    </p>
                   </div>
                 </div>
 

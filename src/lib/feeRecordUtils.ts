@@ -97,3 +97,36 @@ export async function saveFeeRecord(
 
   return { ok: false, message: msg };
 }
+
+export async function returnStudentFeesForMonth(
+  supabase: SupabaseClient,
+  input: {
+    hostelId: string;
+    studentId: string;
+    billingMonthDate: string;
+    rentRecord: FeeRecord | null;
+    messRecord: FeeRecord | null;
+  }
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const ids = [input.rentRecord, input.messRecord]
+    .filter((record) => record && (record.status === "paid" || record.status === "partial"))
+    .map((record) => record!.id);
+
+  if (ids.length === 0) {
+    return { ok: false, message: "No paid fee records found to return." };
+  }
+
+  const { error } = await supabase
+    .from("fee_records")
+    .update({
+      status: "pending",
+      payment_date: null,
+    })
+    .in("id", ids)
+    .eq("hostel_id", input.hostelId)
+    .eq("student_id", input.studentId)
+    .eq("billing_month", input.billingMonthDate);
+
+  if (error) return { ok: false, message: formatSupabaseError(error) };
+  return { ok: true };
+}

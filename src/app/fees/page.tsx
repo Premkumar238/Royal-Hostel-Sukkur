@@ -10,7 +10,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { StudentWhatsAppButton } from "@/components/ui/StudentWhatsAppButton";
-import { formatCurrency, formatDate, currentYearMonth } from "@/lib/utils";
+import { formatCurrency, formatDate, currentYearMonth, formatMonth } from "@/lib/utils";
+import { returnStudentFeesForMonth } from "@/lib/feeRecordUtils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 import {
@@ -19,7 +20,7 @@ import {
   getInvoiceTotal,
 } from "@/lib/studentInvoice";
 import type { FeeRecord, Student } from "@/types/database";
-import { Search, Filter, Loader2, FileText } from "lucide-react";
+import { Search, Filter, Loader2, FileText, RotateCcw } from "lucide-react";
 
 interface StudentFeeInvoiceRow {
   student: Student;
@@ -42,6 +43,7 @@ function FeesPageContent() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [billingMonth, setBillingMonth] = useState(currentYearMonth());
+  const [returningStudentId, setReturningStudentId] = useState<string | null>(null);
 
   const supabase = createClient();
   const billingMonthDate = `${billingMonth}-01`;
@@ -152,6 +154,39 @@ function FeesPageContent() {
     const rentDue = row.rentStatus !== "na" && row.rentStatus !== "paid";
     const messDue = row.messStatus !== "na" && row.messStatus !== "paid";
     return rentDue || messDue;
+  };
+
+  const canReturnRow = (row: StudentFeeInvoiceRow) =>
+    row.invoiceStatus === "paid" || row.invoiceStatus === "partial";
+
+  const handleReturnFees = async (row: StudentFeeInvoiceRow) => {
+    if (!currentHostel) return;
+    const displayName = row.student.full_name || row.student.student_code;
+    const monthLabel = formatMonth(billingMonthDate);
+    if (
+      !confirm(
+        `Return fees for ${displayName} (${monthLabel})?\n\nThis marks rent and mess as pending again so you can re-record payment if needed.`
+      )
+    ) {
+      return;
+    }
+
+    setReturningStudentId(row.student.id);
+    const result = await returnStudentFeesForMonth(supabase, {
+      hostelId: currentHostel.id,
+      studentId: row.student.id,
+      billingMonthDate,
+      rentRecord: row.rentRecord,
+      messRecord: row.messRecord,
+    });
+    setReturningStudentId(null);
+
+    if (!result.ok) {
+      alert(result.message);
+      return;
+    }
+
+    fetchData();
   };
 
   return (
@@ -288,6 +323,22 @@ function FeesPageContent() {
                             billingMonth={billingMonth}
                             recipient="parent"
                           />
+                        )}
+                        {canReturnRow(row) && (
+                          <button
+                            type="button"
+                            onClick={() => handleReturnFees(row)}
+                            disabled={returningStudentId === row.student.id}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                            title="Return fees — marks as pending again"
+                          >
+                            {returningStudentId === row.student.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            )}
+                            Return
+                          </button>
                         )}
                         {canPayRow(row) ? (
                           <Link

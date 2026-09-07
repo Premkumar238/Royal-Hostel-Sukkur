@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   PiggyBank,
   CalendarClock,
+  Wallet,
 } from "lucide-react";
 import {
   LineChart,
@@ -242,7 +243,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Total Students"
             value={String(stats?.active_students ?? 0)}
@@ -262,6 +263,12 @@ export default function DashboardPage() {
               />
             </div>
           </StatCard>
+          <StatCard
+            title="Security Advance"
+            value={formatCurrency(stats?.total_advance ?? 0, currentHostel.currency)}
+            icon={Wallet}
+            subtitle="Held from active students"
+          />
           <Link href="/cash" className="block transition-opacity hover:opacity-95">
             <StatCard
               title="Budget"

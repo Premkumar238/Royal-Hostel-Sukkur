@@ -10,12 +10,14 @@ export type MergedHostelSummary = {
   staff_expenses: number;
   mess_operating_expenses: number;
   other_expenses: number;
+  total_advance: number;
 };
 
 export type StudentBillingRow = {
   hostel_name: string;
   student_name: string;
   student_code: string;
+  advance_amount: number;
   rent_amount: number;
   mess_amount: number;
   rent_status: string | null;

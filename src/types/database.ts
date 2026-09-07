@@ -93,6 +93,7 @@ export interface Student {
   breakfast_fee: number | null;
   lunch_fee: number | null;
   dinner_fee: number | null;
+  advance_amount: number | null;
   created_at: string;
 }
 
@@ -209,6 +210,7 @@ export interface DashboardStats {
   monthly_income: number;
   monthly_expenses: number;
   pending_fees: number;
+  total_advance: number;
 }
 
 export interface FinancialChartPoint {
