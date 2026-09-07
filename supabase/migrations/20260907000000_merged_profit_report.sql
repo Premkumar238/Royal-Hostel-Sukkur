@@ -104,11 +104,15 @@ BEGIN
           coalesce((
             SELECT sum(e.amount)
             FROM expenses e
+            LEFT JOIN expense_categories ec ON ec.id = e.category_id
             WHERE e.hostel_id = h.id
               AND e.expense_date BETWEEN v_month_start AND v_month_end
               AND e.employee_id IS NULL
               AND NOT is_ledger_vendor(e.vendor)
               AND e.title NOT LIKE 'Payment — %'
+              AND coalesce(ec.name, '') NOT IN ('Mess - Daily', 'Mess - Initial')
+              AND lower(coalesce(e.vendor, '')) <> 'mess'
+              AND coalesce(e.title, '') NOT ILIKE '%mess expense%'
           ), 0) AS other_expenses
         FROM hostels h
         WHERE h.id IN (SELECT get_royal_girls_hostel_ids())
@@ -191,6 +195,9 @@ BEGIN
           AND e.employee_id IS NULL
           AND NOT is_ledger_vendor(e.vendor)
           AND e.title NOT LIKE 'Payment — %'
+          AND coalesce(ec.name, '') NOT IN ('Mess - Daily', 'Mess - Initial')
+          AND lower(coalesce(e.vendor, '')) <> 'mess'
+          AND coalesce(e.title, '') NOT ILIKE '%mess expense%'
       ) ex
     ),
     'mess_expenses', (

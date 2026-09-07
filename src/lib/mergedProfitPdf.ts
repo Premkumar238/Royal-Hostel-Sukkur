@@ -1,7 +1,6 @@
 import type { MergedProfitMonthlyReport } from "@/lib/mergedProfitUtils";
 import {
   computeStudentBillingStatus,
-  groupExpensesByHostel,
   groupStudentBillingByHostel,
   summarizeHostelRow,
   summarizeMergedReport,
@@ -149,9 +148,10 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     ])
   );
 
-  for (const [hostelName, rows] of groupExpensesByHostel(expenses)) {
+  for (const summary of hostelSummaries) {
+    const rows = expenses.filter((e) => e.hostel_name === summary.hostel_name);
     addSectionTable(
-      `Operating Expenses — ${hostelName}`,
+      `Expense Records — ${summary.hostel_name}`,
       ["Title", "Category", "Vendor", "Amount", "Date"],
       rows.map((e) => [
         e.title,
