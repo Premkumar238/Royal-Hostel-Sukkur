@@ -201,6 +201,7 @@ export default function DashboardPage() {
             <p className="font-semibold">New month started — system reset for {formatMonth(monthCloseNotice.current_month)}</p>
             <p className="mt-1 text-xs text-emerald-800">
               Previous month closed. Students, rooms, budget, ledger, and police verification are unchanged.
+              Expense Records cleared for the new month (last month totals saved in month closing).
               Fee invoices and staff salaries are ready for the new month.
               {monthCloseNotice.fees_created > 0
                 ? ` ${monthCloseNotice.fees_created} pending fee record(s) created.`

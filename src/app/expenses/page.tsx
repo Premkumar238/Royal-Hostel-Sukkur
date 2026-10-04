@@ -11,7 +11,10 @@ import {
   deleteSharedMessExpense,
   fetchSharedMessExpenses,
 } from "@/lib/sharedMessUtils";
-import { isOperationalExpenseRecord } from "@/lib/expenseRecordUtils";
+import {
+  isExpenseInYearMonth,
+  isOperationalExpenseRecord,
+} from "@/lib/expenseRecordUtils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { formatCurrency, formatDate, formatMonth, currentYearMonth } from "@/lib/utils";
 import type { Employee, EmployeeRole, Expense, MessExpense } from "@/types/database";
@@ -72,6 +75,7 @@ export default function ExpensesPage() {
 
   const supabase = createClient();
   const messBillingMonthDate = `${messBillingMonth}-01`;
+  const expenseRecordsMonth = currentYearMonth();
 
   const fetchData = useCallback(async () => {
     if (!currentHostel) return;
@@ -107,6 +111,15 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const refreshAfterMonthClose = () => {
+      fetchData();
+    };
+
+    window.addEventListener("hostel:month-closed", refreshAfterMonthClose);
+    return () => window.removeEventListener("hostel:month-closed", refreshAfterMonthClose);
   }, [fetchData]);
 
   const handleLogExpense = async (e: React.FormEvent) => {
@@ -307,8 +320,13 @@ export default function ExpensesPage() {
   };
 
   const operationalExpenses = useMemo(
-    () => expenses.filter(isOperationalExpenseRecord),
-    [expenses]
+    () =>
+      expenses.filter(
+        (expense) =>
+          isOperationalExpenseRecord(expense) &&
+          isExpenseInYearMonth(expense.expense_date, expenseRecordsMonth)
+      ),
+    [expenseRecordsMonth, expenses]
   );
 
   const filteredExpenses = operationalExpenses.filter((e) => {
@@ -535,7 +553,8 @@ export default function ExpensesPage() {
             <div>
               <h2 className="text-sm font-bold text-gray-900">Expense Records</h2>
               <p className="text-xs text-gray-400 mt-0.5">
-                Hostel operations only — salaries, mess, and ledger are tracked separately
+                Current month only ({formatMonth(`${expenseRecordsMonth}-01`)}) — cleared when a new
+                month starts. Salaries, mess, and ledger are tracked separately.
               </p>
             </div>
             <div className="flex flex-wrap gap-2.5">

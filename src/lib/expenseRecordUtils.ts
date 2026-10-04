@@ -36,3 +36,8 @@ export function isOperationalExpenseRecord(expense: ExpenseLike): boolean {
     !isSalaryExpenseRecord(expense)
   );
 }
+
+/** Match expense_date to calendar month `YYYY-MM`. */
+export function isExpenseInYearMonth(expenseDate: string, yearMonth: string): boolean {
+  return expenseDate.slice(0, 7) === yearMonth.slice(0, 7);
+}
