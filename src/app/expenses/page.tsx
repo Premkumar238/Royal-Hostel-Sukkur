@@ -16,7 +16,13 @@ import {
   isOperationalExpenseRecord,
 } from "@/lib/expenseRecordUtils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
-import { formatCurrency, formatDate, formatMonth, currentYearMonth } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDate,
+  formatMonth,
+  currentYearMonth,
+  yearMonthDateRange,
+} from "@/lib/utils";
 import type { Employee, EmployeeRole, Expense, MessExpense } from "@/types/database";
 import {
   Search,
@@ -76,6 +82,7 @@ export default function ExpensesPage() {
   const supabase = createClient();
   const messBillingMonthDate = `${messBillingMonth}-01`;
   const expenseRecordsMonth = currentYearMonth();
+  const expenseRecordsRange = yearMonthDateRange(expenseRecordsMonth);
 
   const fetchData = useCallback(async () => {
     if (!currentHostel) return;
@@ -86,6 +93,8 @@ export default function ExpensesPage() {
         .from("expenses")
         .select("*, expense_categories(name)")
         .eq("hostel_id", currentHostel.id)
+        .gte("expense_date", expenseRecordsRange.start)
+        .lte("expense_date", expenseRecordsRange.end)
         .order("expense_date", { ascending: false }),
       supabase
         .from("expense_categories")
@@ -107,7 +116,7 @@ export default function ExpensesPage() {
     setMessExpenses(messResult.data);
 
     setLoading(false);
-  }, [currentHostel, messBillingMonthDate, supabase]);
+  }, [currentHostel, expenseRecordsRange.end, expenseRecordsRange.start, messBillingMonthDate, supabase]);
 
   useEffect(() => {
     fetchData();

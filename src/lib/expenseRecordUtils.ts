@@ -1,5 +1,6 @@
 import type { Expense } from "@/types/database";
 import { isPayoutRecipient } from "@/lib/payoutUtils";
+import { STAFF_ROLES } from "@/lib/staffUtils";
 
 type ExpenseLike = Pick<Expense, "title" | "vendor" | "employee_id"> & {
   expense_categories?: { name: string } | null;
@@ -25,6 +26,9 @@ export function isLedgerExpenseRecord(expense: ExpenseLike): boolean {
 /** Salary payments logged via Staff Management — not operational expense records. */
 export function isSalaryExpenseRecord(expense: ExpenseLike): boolean {
   if (expense.employee_id) return true;
+  const category = (expense.expense_categories?.name ?? "").trim();
+  if (category.toLowerCase() === "salary") return true;
+  if (STAFF_ROLES.includes(category as (typeof STAFF_ROLES)[number])) return true;
   return expense.title.toLowerCase().includes("salary");
 }
 

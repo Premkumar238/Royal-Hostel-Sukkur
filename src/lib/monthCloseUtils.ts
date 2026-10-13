@@ -5,6 +5,7 @@ export interface MonthCloseResult {
   closed_months: string[];
   did_close: boolean;
   fees_created: number;
+  expenses_purged?: number;
 }
 
 export async function autoCloseHostelMonths(

@@ -28,7 +28,10 @@ export function MonthCloseRunner() {
         sessionStorage.setItem(sessionKey, "1");
       }
 
-      if (result && (result.did_close || result.fees_created > 0)) {
+      if (
+        result &&
+        (result.did_close || result.fees_created > 0 || (result.expenses_purged ?? 0) > 0)
+      ) {
         window.dispatchEvent(
           new CustomEvent("hostel:month-closed", {
             detail: result,

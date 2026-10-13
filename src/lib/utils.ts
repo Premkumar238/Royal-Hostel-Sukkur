@@ -62,3 +62,14 @@ export function currentYearMonth(reference = new Date()): string {
 export function currentBillingMonthDate(reference = new Date()): string {
   return `${currentYearMonth(reference)}-01`;
 }
+
+/** Inclusive calendar month range for expense_date filters (`YYYY-MM-DD`). */
+export function yearMonthDateRange(yearMonth: string): { start: string; end: string } {
+  const normalized = yearMonth.slice(0, 7);
+  const [y, m] = normalized.split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return {
+    start: `${normalized}-01`,
+    end: `${normalized}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
