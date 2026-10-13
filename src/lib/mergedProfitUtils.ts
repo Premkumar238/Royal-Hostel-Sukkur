@@ -113,16 +113,26 @@ export function groupExpensesByHostel(rows: MergedProfitMonthlyReport["expenses"
   return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-export function summarizeHostelRow(row: MergedHostelSummary) {
+/** Mess operating is shared — same total on each hostel row; split for per-hostel net profit. */
+export function getSharedMessOperatingTotal(report: MergedProfitMonthlyReport): number {
+  const summaries = report.hostel_summaries ?? [];
+  if (summaries.length > 0) {
+    return Number(summaries[0].mess_operating_expenses || 0);
+  }
+  return (report.mess_expenses ?? []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+}
+
+export function summarizeHostelRow(row: MergedHostelSummary, hostelCount = 2) {
   const totalIncome = Number(row.rent_collected) + Number(row.mess_collected);
+  const sharedMess = Number(row.mess_operating_expenses || 0);
+  const messShare = sharedMess / Math.max(hostelCount, 1);
   const totalExpenses =
-    Number(row.staff_expenses) +
-    Number(row.mess_operating_expenses) +
-    Number(row.other_expenses);
+    Number(row.staff_expenses) + messShare + Number(row.other_expenses);
   return {
     totalIncome,
     totalExpenses,
     netProfit: totalIncome - totalExpenses,
+    messShare,
   };
 }
 
@@ -140,12 +150,9 @@ export function buildMergedMonthlyCategoryData(
     map.set("Staff Salaries", (map.get("Staff Salaries") ?? 0) + Number(payment.amount || 0));
   }
 
-  const messTotal = (report.mess_expenses ?? []).reduce(
-    (sum, row) => sum + Number(row.amount || 0),
-    0
-  );
+  const messTotal = getSharedMessOperatingTotal(report);
   if (messTotal > 0) {
-    map.set("Mess Operating", messTotal);
+    map.set("Mess Operating (Shared)", messTotal);
   }
 
   for (const ledger of report.shared_ledger ?? []) {
@@ -161,9 +168,11 @@ export function buildMergedMonthlyCategoryData(
 export function summarizeMergedReport(report: MergedProfitMonthlyReport) {
   let grandIncome = 0;
   let grandExpenses = 0;
+  const hostelSummaries = report.hostel_summaries ?? [];
+  const hostelCount = Math.max(hostelSummaries.length, 1);
 
-  for (const row of report.hostel_summaries ?? []) {
-    const s = summarizeHostelRow(row);
+  for (const row of hostelSummaries) {
+    const s = summarizeHostelRow(row, hostelCount);
     grandIncome += s.totalIncome;
     grandExpenses += s.totalExpenses;
   }

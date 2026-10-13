@@ -341,7 +341,7 @@ BEGIN
           coalesce((
             SELECT sum(me.amount)
             FROM mess_expenses me
-            WHERE me.hostel_id = h.id
+            WHERE me.hostel_id IN (SELECT get_royal_girls_hostel_ids())
               AND me.billing_month = v_month_start
           ), 0) AS mess_operating_expenses,
           coalesce((

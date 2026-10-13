@@ -77,7 +77,12 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   doc.text(`Final Net Profit: ${money(totals.grandNetProfit, currency)}`, 14, y);
   y += 8;
 
-  const addSectionTable = (title: string, headers: string[], rows: string[][]) => {
+  const addSectionTable = (
+    title: string,
+    headers: string[],
+    rows: string[][],
+    totalRow?: string[]
+  ) => {
     if (y > 250) {
       doc.addPage();
       y = 20;
@@ -90,55 +95,108 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     doc.autoTable({
       head: [headers],
       body: rows.length ? rows : [["—", "No records", "—", "—"]],
+      foot: totalRow ? [totalRow] : undefined,
       startY: y + 2,
       theme: "striped",
       headStyles: { fillColor: primaryColor, fontSize: 8 },
       bodyStyles: { fontSize: 7 },
+      footStyles: { fillColor: [229, 231, 235], fontStyle: "bold", fontSize: 7 },
       margin: { left: 14, right: 14 },
     });
     y = doc.lastAutoTable.finalY + 8;
   };
 
+  const hostelCount = Math.max(hostelSummaries.length, 1);
+  const sharedMessOps = hostelSummaries.length
+    ? Number(hostelSummaries[0].mess_operating_expenses || 0)
+    : messExpenses.reduce((sum, m) => sum + Number(m.amount || 0), 0);
+
+  let sumRent = 0;
+  let sumMessCollected = 0;
+  let sumStaff = 0;
+  let sumOther = 0;
+  let sumAdvance = 0;
+  let sumNet = 0;
+
+  const hostelSummaryRows = hostelSummaries.map((row) => {
+    const s = summarizeHostelRow(row, hostelCount);
+    sumRent += Number(row.rent_collected || 0);
+    sumMessCollected += Number(row.mess_collected || 0);
+    sumStaff += Number(row.staff_expenses || 0);
+    sumOther += Number(row.other_expenses || 0);
+    sumAdvance += Number(row.total_advance || 0);
+    sumNet += s.netProfit;
+    return [
+      row.hostel_name,
+      money(row.rent_collected, currency),
+      money(row.mess_collected, currency),
+      money(row.staff_expenses, currency),
+      money(row.mess_operating_expenses, currency),
+      money(row.other_expenses, currency),
+      money(row.total_advance ?? 0, currency),
+      money(s.netProfit, currency),
+    ];
+  });
+
   addSectionTable(
-    "Hostel Summary",
+    "Hostel Summary (Mess Ops is shared — same amount on both hostels)",
     ["Hostel", "Rent", "Mess", "Staff", "Mess Ops", "Other Exp.", "Advance Held", "Net Profit"],
-    hostelSummaries.map((row) => {
-      const s = summarizeHostelRow(row);
-      return [
-        row.hostel_name,
-        money(row.rent_collected, currency),
-        money(row.mess_collected, currency),
-        money(row.staff_expenses, currency),
-        money(row.mess_operating_expenses, currency),
-        money(row.other_expenses, currency),
-        money(row.total_advance ?? 0, currency),
-        money(s.netProfit, currency),
-      ];
-    })
+    hostelSummaryRows,
+    [
+      "TOTAL",
+      money(sumRent, currency),
+      money(sumMessCollected, currency),
+      money(sumStaff, currency),
+      money(sharedMessOps, currency),
+      money(sumOther, currency),
+      money(sumAdvance, currency),
+      money(sumNet, currency),
+    ]
   );
 
   for (const [hostelName, rows] of groupStudentBillingByHostel(studentBilling)) {
+    let totalRent = 0;
+    let totalMess = 0;
+    let totalAdvance = 0;
+    let totalFees = 0;
+
+    const bodyRows = rows.map((row) => {
+      const rent = Number(row.rent_amount || 0);
+      const mess = Number(row.mess_amount || 0);
+      const advance = Number(row.advance_amount || 0);
+      const status = computeStudentBillingStatus(row);
+      totalRent += rent;
+      totalMess += mess;
+      totalAdvance += advance;
+      totalFees += rent + mess;
+      return [
+        `${row.student_name} (${row.student_code})`,
+        money(rent, currency),
+        mess > 0 ? money(mess, currency) : "—",
+        advance > 0 ? money(advance, currency) : "—",
+        money(rent + mess, currency),
+        status,
+        row.payment_date ? formatDate(row.payment_date) : "—",
+      ];
+    });
+
     addSectionTable(
       `Student Billing — ${hostelName}`,
       ["Student", "Rent", "Mess", "Advance", "Total", "Status", "Paid On"],
-      rows.map((row) => {
-        const rent = Number(row.rent_amount || 0);
-        const mess = Number(row.mess_amount || 0);
-        const advance = Number(row.advance_amount || 0);
-        const status = computeStudentBillingStatus(row);
-        return [
-          `${row.student_name} (${row.student_code})`,
-          money(rent, currency),
-          mess > 0 ? money(mess, currency) : "—",
-          advance > 0 ? money(advance, currency) : "—",
-          money(rent + mess, currency),
-          status,
-          row.payment_date ? formatDate(row.payment_date) : "—",
-        ];
-      })
+      bodyRows,
+      [
+        "TOTAL",
+        money(totalRent, currency),
+        money(totalMess, currency),
+        money(totalAdvance, currency),
+        money(totalFees, currency),
+        "—",
+        "—",
+      ]
     );
   }
 
+  const staffTotal = staffPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
   addSectionTable(
     "Staff Salaries",
     ["Hostel", "Employee", "Role", "Amount", "Date"],
@@ -148,11 +206,13 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
       p.role,
       money(p.amount, currency),
       formatDate(p.payment_date),
-    ])
+    ]),
+    ["TOTAL", "—", "—", money(staffTotal, currency), "—"]
   );
 
   for (const summary of hostelSummaries) {
     const rows = expenses.filter((e) => e.hostel_name === summary.hostel_name);
+    const expTotal = rows.reduce((sum, e) => sum + Number(e.amount || 0), 0);
     addSectionTable(
       `Expense Records — ${summary.hostel_name}`,
       ["Title", "Category", "Vendor", "Amount", "Date"],
@@ -162,13 +222,14 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
         e.vendor || "—",
         money(e.amount, currency),
         formatDate(e.expense_date),
-      ])
+      ]),
+      ["TOTAL", "—", "—", money(expTotal, currency), "—"]
     );
   }
 
-  const messTotal = messExpenses.reduce((sum, m) => sum + Number(m.amount || 0), 0);
+  const messTotal = sharedMessOps;
   addSectionTable(
-    `Mess Operating Expenses — Both Hostels (Total: ${money(messTotal, currency)})`,
+    `Mess Operating Expenses — Shared (Both Hostels)`,
     ["Description", "Type", "Amount", "Date", "Hostel"],
     messExpenses.map((m) => [
       m.description || "—",
@@ -176,9 +237,11 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
       money(m.amount, currency),
       formatDate(m.expense_date),
       m.hostel_name,
-    ])
+    ]),
+    ["TOTAL", "—", money(messTotal, currency), "—", "—"]
   );
 
+  const ledgerTotal = sharedLedger.reduce((sum, l) => sum + Number(l.amount || 0), 0);
   addSectionTable(
     "Shared Ledger (Both Hostels)",
     ["Hostel", "Vendor", "Amount", "Date", "Notes"],
@@ -188,7 +251,8 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
       money(l.amount, currency),
       formatDate(l.expense_date),
       l.description || "—",
-    ])
+    ]),
+    ["TOTAL", "—", money(ledgerTotal, currency), "—", "—"]
   );
 
   const van = report.van ?? {
@@ -221,6 +285,10 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   doc.text(`Van Net Profit: ${money(van.net_profit, currency)}`, 14, y);
   y += 8;
 
+  const vanPaymentsTotal = (van.payments ?? []).reduce(
+    (sum, p) => sum + Number(p.amount || 0),
+    0
+  );
   addSectionTable(
     "Van Passenger Payments",
     ["Passenger", "Date", "Amount", "Notes"],
@@ -229,9 +297,14 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
       formatDate(p.payment_date),
       money(p.amount, currency),
       p.notes || "—",
-    ])
+    ]),
+    ["TOTAL", "—", money(vanPaymentsTotal, currency), "—"]
   );
 
+  const vanExpensesTotal = (van.expenses ?? []).reduce(
+    (sum, e) => sum + Number(e.amount || 0),
+    0
+  );
   addSectionTable(
     "Van Expenses",
     ["Date", "Description", "Amount"],
@@ -239,7 +312,8 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
       formatDate(e.expense_date),
       e.description || "Van expense",
       money(e.amount, currency),
-    ])
+    ]),
+    ["TOTAL", "—", money(vanExpensesTotal, currency)]
   );
 
   doc.save(`Merged-Profit-Report-${report.billing_month.slice(0, 7)}.pdf`);
