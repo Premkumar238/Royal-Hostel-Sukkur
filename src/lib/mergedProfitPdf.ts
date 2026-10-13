@@ -77,12 +77,10 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   );
   y += 5;
   doc.text(
-    `Hostel Net Profit (matches Hostel Summary TOTAL): ${money(totals.hostelNetProfit, currency)}`,
+    `Shared Ledger Payments (separate — not in net profit): ${money(totals.ledgerTotal, currency)}`,
     14,
     y
   );
-  y += 5;
-  doc.text(`Shared Ledger Payments: ${money(totals.ledgerTotal, currency)}`, 14, y);
   y += 5;
   doc.setFont("helvetica", "bold");
   doc.setTextColor(
@@ -91,7 +89,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
     totals.grandNetProfit >= 0 ? 52 : 38
   );
   doc.text(
-    `Final Net Profit (Hostel Net − Ledger): ${money(totals.grandNetProfit, currency)}`,
+    `Final Net Profit (matches Hostel Summary TOTAL): ${money(totals.grandNetProfit, currency)}`,
     14,
     y
   );

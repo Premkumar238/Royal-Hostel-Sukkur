@@ -194,8 +194,8 @@ export function summarizeMergedReport(report: MergedProfitMonthlyReport) {
     0
   );
 
-  const grandExpenses = hostelOperatingExpenses + ledgerTotal;
-  const grandNetProfit = hostelNetProfit - ledgerTotal;
+  const grandExpenses = hostelOperatingExpenses;
+  const grandNetProfit = hostelNetProfit;
 
   return {
     grandIncome,
