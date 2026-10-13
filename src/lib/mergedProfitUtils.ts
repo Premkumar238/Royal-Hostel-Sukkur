@@ -167,27 +167,46 @@ export function buildMergedMonthlyCategoryData(
 
 export function summarizeMergedReport(report: MergedProfitMonthlyReport) {
   let grandIncome = 0;
-  let grandExpenses = 0;
+  let hostelOperatingExpenses = 0;
+  let hostelNetProfit = 0;
   const hostelSummaries = report.hostel_summaries ?? [];
   const hostelCount = Math.max(hostelSummaries.length, 1);
 
   for (const row of hostelSummaries) {
     const s = summarizeHostelRow(row, hostelCount);
     grandIncome += s.totalIncome;
-    grandExpenses += s.totalExpenses;
+    hostelOperatingExpenses += s.totalExpenses;
+    hostelNetProfit += s.netProfit;
   }
 
   const ledgerTotal = (report.shared_ledger ?? []).reduce(
     (sum, row) => sum + Number(row.amount || 0),
     0
   );
-  grandExpenses += ledgerTotal;
+
+  const sharedMessTotal = getSharedMessOperatingTotal(report);
+  const staffTotal = hostelSummaries.reduce(
+    (sum, row) => sum + Number(row.staff_expenses || 0),
+    0
+  );
+  const otherTotal = hostelSummaries.reduce(
+    (sum, row) => sum + Number(row.other_expenses || 0),
+    0
+  );
+
+  const grandExpenses = hostelOperatingExpenses + ledgerTotal;
+  const grandNetProfit = hostelNetProfit - ledgerTotal;
 
   return {
     grandIncome,
     grandExpenses,
-    grandNetProfit: grandIncome - grandExpenses,
+    grandNetProfit,
     ledgerTotal,
+    hostelNetProfit,
+    hostelOperatingExpenses,
+    sharedMessTotal,
+    staffTotal,
+    otherTotal,
   };
 }
 

@@ -70,11 +70,31 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   doc.setFontSize(10);
   doc.text(`Total Income (Rent + Mess): ${money(totals.grandIncome, currency)}`, 14, y);
   y += 5;
-  doc.text(`Total Expenses (incl. shared ledger): ${money(totals.grandExpenses, currency)}`, 14, y);
+  doc.text(
+    `Hostel Expenses — Staff: ${money(totals.staffTotal, currency)} · Shared Mess Ops: ${money(totals.sharedMessTotal, currency)} · Other: ${money(totals.otherTotal, currency)}`,
+    14,
+    y
+  );
+  y += 5;
+  doc.text(
+    `Hostel Net Profit (matches Hostel Summary TOTAL): ${money(totals.hostelNetProfit, currency)}`,
+    14,
+    y
+  );
+  y += 5;
+  doc.text(`Shared Ledger Payments: ${money(totals.ledgerTotal, currency)}`, 14, y);
   y += 5;
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(totals.grandNetProfit >= 0 ? 22 : 220, totals.grandNetProfit >= 0 ? 101 : 38, totals.grandNetProfit >= 0 ? 52 : 38);
-  doc.text(`Final Net Profit: ${money(totals.grandNetProfit, currency)}`, 14, y);
+  doc.setTextColor(
+    totals.grandNetProfit >= 0 ? 22 : 220,
+    totals.grandNetProfit >= 0 ? 101 : 38,
+    totals.grandNetProfit >= 0 ? 52 : 38
+  );
+  doc.text(
+    `Final Net Profit (Hostel Net − Ledger): ${money(totals.grandNetProfit, currency)}`,
+    14,
+    y
+  );
   y += 8;
 
   const addSectionTable = (
