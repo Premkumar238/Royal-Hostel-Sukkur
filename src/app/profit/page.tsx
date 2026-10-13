@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Header } from "@/components/layout/Header";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { StatCard } from "@/components/ui/StatCard";
-import { formatCurrency, calcProfitMargin, currentYearMonth, formatMonth } from "@/lib/utils";
-import type { FinancialChartPoint } from "@/types/database";
+import {
+  formatCurrency,
+  currentYearMonth,
+  formatMonth,
+  currentBillingMonthDate,
+} from "@/lib/utils";
 import {
   TrendingUp,
   Coins,
@@ -15,29 +19,16 @@ import {
   Download,
   Loader2,
   Building2,
+  Bus,
+  CalendarClock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  fetchMergedFinancialChart,
+  fetchMergedProfitCurrentMonthDashboard,
   fetchMergedProfitMonthlyReport,
-  fetchMergedProfitOverview,
 } from "@/lib/mergedProfitUtils";
 import { downloadMergedProfitReportPDF } from "@/lib/mergedProfitPdf";
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 const PIE_COLORS = ["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe"];
 
@@ -50,46 +41,53 @@ export default function ProfitPage() {
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [billingMonth, setBillingMonth] = useState(currentYearMonth());
+  const [downloadMonth, setDownloadMonth] = useState(currentYearMonth());
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
-  const [chartData, setChartData] = useState<FinancialChartPoint[]>([]);
+  const [netProfit, setNetProfit] = useState(0);
+  const [margin, setMargin] = useState(0);
+  const [vanNetProfit, setVanNetProfit] = useState(0);
   const [categoryData, setCategoryData] = useState<CategoryExpense[]>([]);
 
   const supabase = createClient();
-  const billingMonthDate = `${billingMonth}-01`;
+  const currentMonthDate = currentBillingMonthDate();
+  const downloadMonthDate = `${downloadMonth}-01`;
   const currency = "PKR";
+  const monthLabel = formatMonth(currentMonthDate);
+
+  const loadCurrentMonth = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    const dashboard = await fetchMergedProfitCurrentMonthDashboard(supabase, currentMonthDate);
+
+    if (dashboard.error) {
+      setError(
+        dashboard.error +
+          " Run the merged profit SQL migrations in Supabase if you have not already."
+      );
+    }
+
+    setTotalIncome(dashboard.totalIncome);
+    setTotalExpense(dashboard.totalExpense);
+    setNetProfit(dashboard.netProfit);
+    setMargin(dashboard.margin);
+    setVanNetProfit(dashboard.vanNetProfit);
+    setCategoryData(dashboard.categoryData);
+    setLoading(false);
+  }, [currentMonthDate, supabase]);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
+    loadCurrentMonth();
+  }, [loadCurrentMonth]);
 
-      const [overview, chart] = await Promise.all([
-        fetchMergedProfitOverview(supabase),
-        fetchMergedFinancialChart(supabase, 12),
-      ]);
-
-      if (overview.error || chart.error) {
-        setError(
-          overview.error ||
-            chart.error ||
-            "Could not load merged profit data. Run the merged profit SQL migration in Supabase."
-        );
-      }
-
-      setTotalIncome(overview.totalIncome);
-      setTotalExpense(overview.totalExpense);
-      setCategoryData(overview.categoryData);
-      setChartData(chart.data);
-      setLoading(false);
+  useEffect(() => {
+    const onMonthClosed = () => {
+      loadCurrentMonth();
     };
-
-    load();
-  }, [supabase]);
-
-  const netProfit = totalIncome - totalExpense;
-  const margin = calcProfitMargin(totalIncome, totalExpense);
+    window.addEventListener("hostel:month-closed", onMonthClosed);
+    return () => window.removeEventListener("hostel:month-closed", onMonthClosed);
+  }, [loadCurrentMonth]);
 
   const handleDownloadPdf = async () => {
     setPdfLoading(true);
@@ -97,7 +95,7 @@ export default function ProfitPage() {
     try {
       const { data, error: reportError } = await fetchMergedProfitMonthlyReport(
         supabase,
-        billingMonthDate
+        downloadMonthDate
       );
       if (reportError || !data) {
         setError(reportError || "Could not build monthly report.");
@@ -127,11 +125,19 @@ export default function ProfitPage() {
               <div>
                 <p className="font-semibold">Combined profit — Royal Girls Hostel 1 + Hostel 2</p>
                 <p className="text-xs text-indigo-800 mt-0.5">
-                  Main dashboard stays separate per hostel. This page merges income, expenses, ledger,
-                  staff, and student payments for both properties.
+                  Dashboard numbers are for the current month only. Pick any past month below to
+                  download its full PDF report (students, staff, expenses, ledger, van).
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-xs text-gray-600 flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-blue-600 shrink-0" />
+            <span>
+              Operating month on this page:{" "}
+              <strong className="text-gray-900">{monthLabel}</strong>
+            </span>
           </div>
 
           {error && (
@@ -140,177 +146,147 @@ export default function ProfitPage() {
             </div>
           )}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-gray-900">Monthly merged report</h2>
-              <p className="text-xs text-gray-400">
-                PDF includes ledgers, expenses, staff, student rent + mess, and final profit for{" "}
-                {formatMonth(billingMonthDate)}. Van profit is shown separately at the end.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <MonthPicker
-                id="profit-report-month"
-                value={billingMonth}
-                onChange={setBillingMonth}
-                className="shrink-0 sm:w-auto"
-              />
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                disabled={pdfLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
-              >
-                {pdfLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                Download PDF
-              </button>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Combined Income"
               value={formatCurrency(totalIncome, currency)}
               icon={Coins}
-              subtitle="Both hostels — all time collected fees"
+              subtitle={`${monthLabel} — rent + mess collected`}
             />
             <StatCard
               title="Combined Expenses"
               value={formatCurrency(totalExpense, currency)}
               icon={TrendingDown}
-              subtitle="Both hostels — all logged expenses"
+              subtitle={`${monthLabel} — staff, mess, ledger, other`}
             />
             <StatCard
-              title="Combined Net Profit"
+              title="Hostel Net Profit"
               value={formatCurrency(netProfit, currency)}
               icon={TrendingUp}
-              subtitle={netProfit >= 0 ? "Positive combined ledger" : "Combined loss warning"}
+              subtitle={
+                netProfit >= 0
+                  ? `${monthLabel} — excludes van`
+                  : `${monthLabel} — combined loss`
+              }
             />
             <StatCard
               title="Net Profit Margin"
               value={`${margin}%`}
               icon={Percent}
-              subtitle="Combined margin across both hostels"
+              subtitle={`${monthLabel} — both hostels`}
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                Monthly Financial Trend (Merged)
+                Expense Breakdown — {monthLabel}
               </h3>
-              <p className="text-xs text-gray-400 mb-4">Hostel 1 + Hostel 2 income vs expenses</p>
-              <div className="h-56 sm:h-64 lg:h-80 min-h-[14rem]">
-                {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#9ca3af" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="income"
-                        stroke="#2563eb"
-                        strokeWidth={2.5}
-                        name="Gross Income"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="expenses"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        strokeDasharray="4 4"
-                        name="Gross Expenses"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                    No timeline data yet
-                  </div>
-                )}
-              </div>
+              <p className="text-xs text-gray-400 mb-4">Both hostels, current month only</p>
+              {categoryData.length === 0 ? (
+                <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+                  No expenses recorded for this month yet
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {categoryData.map((d, i) => (
+                    <div
+                      key={d.name}
+                      className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                        />
+                        <span className="text-gray-700">{d.name}</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">
+                        {formatCurrency(d.value, currency)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Expense Breakdown (Merged)</h3>
-              <p className="text-xs text-gray-400 mb-4">Both hostels — by category</p>
-              <div className="h-64 flex-1 relative flex items-center justify-center">
-                {categoryData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
-                        dataKey="value"
-                        strokeWidth={2}
-                        stroke="#fff"
-                      >
-                        {categoryData.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="text-sm text-gray-400">No categories recorded</div>
-                )}
+            <div className="rounded-xl border border-violet-200 bg-violet-50 p-5 shadow-sm flex flex-col">
+              <div className="flex items-center gap-2 text-violet-900">
+                <Bus className="h-4 w-4" />
+                <h3 className="text-sm font-semibold">Van profit — {monthLabel}</h3>
               </div>
-              <div className="mt-4 space-y-1.5 overflow-y-auto max-h-36">
-                {categoryData.map((d, i) => (
-                  <div key={d.name} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
-                      />
-                      <span className="text-gray-600">{d.name}</span>
-                    </div>
-                    <span className="font-semibold text-gray-900">
-                      {formatCurrency(d.value, currency)}
-                    </span>
-                  </div>
-                ))}
+              <p className="text-xs text-violet-800 mt-1 mb-4">Separate from hostel profit</p>
+              <p
+                className={`text-2xl font-bold ${
+                  vanNetProfit >= 0 ? "text-violet-900" : "text-red-700"
+                }`}
+              >
+                {formatCurrency(vanNetProfit, currency)}
+              </p>
+              <p className="text-xs text-violet-700/80 mt-2">
+                Full van details appear in the monthly PDF download.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-5 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">Download monthly report (PDF)</h2>
+                <p className="text-xs text-gray-600 mt-1 max-w-xl">
+                  Select <strong>any month</strong> (including past months) and download the
+                  complete merged report for that month: student billing, staff salaries, expense
+                  records, mess, shared ledger, hostel profit, and van section.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <MonthPicker
+                  id="profit-report-month"
+                  value={downloadMonth}
+                  onChange={setDownloadMonth}
+                  className="shrink-0 sm:w-auto"
+                />
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={pdfLoading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
+                >
+                  {pdfLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Download {formatMonth(downloadMonthDate)} PDF
+                </button>
               </div>
             </div>
           </div>
 
-          {chartData.length > 0 && (
+          {categoryData.length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                Net Monthly Profit (Merged)
+                Expense chart — {monthLabel}
               </h3>
-              <p className="text-xs text-gray-400 mb-4">Combined profit bar chart</p>
-              <div className="h-72">
+              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={chartData.map((d) => ({
-                      ...d,
-                      profit: Number(d.income) - Number(d.expenses),
-                    }))}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#9ca3af" />
-                    <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={90}
+                      dataKey="value"
+                      strokeWidth={2}
+                      stroke="#fff"
+                    >
+                      {categoryData.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
                     <Tooltip />
-                    <Legend />
-                    <Bar
-                      dataKey="profit"
-                      fill="#10b981"
-                      radius={[4, 4, 0, 0]}
-                      name="Net Profit"
-                    />
-                  </BarChart>
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>

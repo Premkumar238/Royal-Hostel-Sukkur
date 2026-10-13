@@ -126,6 +126,38 @@ export function summarizeHostelRow(row: MergedHostelSummary) {
   };
 }
 
+export function buildMergedMonthlyCategoryData(
+  report: MergedProfitMonthlyReport
+): { name: string; value: number }[] {
+  const map = new Map<string, number>();
+
+  for (const expense of report.expenses ?? []) {
+    const name = expense.category?.trim() || "General";
+    map.set(name, (map.get(name) ?? 0) + Number(expense.amount || 0));
+  }
+
+  for (const payment of report.staff_payments ?? []) {
+    map.set("Staff Salaries", (map.get("Staff Salaries") ?? 0) + Number(payment.amount || 0));
+  }
+
+  const messTotal = (report.mess_expenses ?? []).reduce(
+    (sum, row) => sum + Number(row.amount || 0),
+    0
+  );
+  if (messTotal > 0) {
+    map.set("Mess Operating", messTotal);
+  }
+
+  for (const ledger of report.shared_ledger ?? []) {
+    const name = `Ledger — ${ledger.vendor}`;
+    map.set(name, (map.get(name) ?? 0) + Number(ledger.amount || 0));
+  }
+
+  return [...map.entries()]
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+}
+
 export function summarizeMergedReport(report: MergedProfitMonthlyReport) {
   let grandIncome = 0;
   let grandExpenses = 0;
@@ -172,6 +204,41 @@ export async function fetchMergedProfitMonthlyReport(
 
   if (error) return { data: null, error: error.message };
   return { data: (data ?? null) as MergedProfitMonthlyReport | null, error: null };
+}
+
+export async function fetchMergedProfitCurrentMonthDashboard(
+  supabase: SupabaseClient,
+  billingMonthDate: string
+) {
+  const { data, error } = await fetchMergedProfitMonthlyReport(supabase, billingMonthDate);
+  if (error || !data) {
+    return {
+      totalIncome: 0,
+      totalExpense: 0,
+      netProfit: 0,
+      margin: 0,
+      categoryData: [] as { name: string; value: number }[],
+      vanNetProfit: 0,
+      error: error || "Could not load monthly profit data.",
+    };
+  }
+
+  const totals = summarizeMergedReport(data);
+  const totalIncome = totals.grandIncome;
+  const totalExpense = totals.grandExpenses;
+  const netProfit = totals.grandNetProfit;
+  const margin =
+    totalIncome > 0 ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100) : 0;
+
+  return {
+    totalIncome,
+    totalExpense,
+    netProfit,
+    margin,
+    categoryData: buildMergedMonthlyCategoryData(data),
+    vanNetProfit: Number(data.van?.net_profit ?? 0),
+    error: null as string | null,
+  };
 }
 
 export async function fetchMergedProfitOverview(supabase: SupabaseClient) {
