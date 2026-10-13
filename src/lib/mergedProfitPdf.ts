@@ -43,6 +43,11 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   const primaryColor: [number, number, number] = [37, 99, 235];
   const studentBilling = report.student_billing ?? [];
   const hostelSummaries = report.hostel_summaries ?? [];
+  const hostelCountForProfit = Math.max(hostelSummaries.length, 1);
+  const finalNetProfitExcludingLedger = hostelSummaries.reduce(
+    (sum, row) => sum + summarizeHostelRow(row, hostelCountForProfit).netProfit,
+    0
+  );
   const staffPayments = report.staff_payments ?? [];
   const expenses = report.expenses ?? [];
   const messExpenses = report.mess_expenses ?? [];
@@ -58,6 +63,8 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   doc.setFont("helvetica", "normal");
   doc.text(`Billing Month: ${monthLabel}`, 14, 21);
   doc.text(`Generated: ${new Date().toLocaleString()}`, 120, 21);
+  doc.setFontSize(8);
+  doc.text("Net profit excludes shared ledger", 14, 26);
 
   let y = 36;
 
@@ -77,19 +84,19 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   );
   y += 5;
   doc.text(
-    `Shared Ledger Payments (separate — not in net profit): ${money(totals.ledgerTotal, currency)}`,
+    `Shared Ledger (own section below — NOT deducted from net profit): ${money(totals.ledgerTotal, currency)}`,
     14,
     y
   );
   y += 5;
   doc.setFont("helvetica", "bold");
   doc.setTextColor(
-    totals.grandNetProfit >= 0 ? 22 : 220,
-    totals.grandNetProfit >= 0 ? 101 : 38,
-    totals.grandNetProfit >= 0 ? 52 : 38
+    finalNetProfitExcludingLedger >= 0 ? 22 : 220,
+    finalNetProfitExcludingLedger >= 0 ? 101 : 38,
+    finalNetProfitExcludingLedger >= 0 ? 52 : 38
   );
   doc.text(
-    `Final Net Profit (matches Hostel Summary TOTAL): ${money(totals.grandNetProfit, currency)}`,
+    `Final Net Profit: ${money(finalNetProfitExcludingLedger, currency)}`,
     14,
     y
   );

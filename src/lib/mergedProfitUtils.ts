@@ -253,14 +253,14 @@ export async function fetchMergedProfitCurrentMonthDashboard(
 
   const totals = summarizeMergedReport(data);
   const totalIncome = totals.grandIncome;
-  const totalExpense = totals.grandExpenses;
-  const netProfit = totals.grandNetProfit;
+  const totalExpense = totals.hostelOperatingExpenses;
+  const netProfit = totals.hostelNetProfit;
   const margin =
-    totalIncome > 0 ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100) : 0;
+    totalIncome > 0 ? Math.round((netProfit / totalIncome) * 100) : 0;
 
   return {
     totalIncome,
-    totalExpense,
+    totalExpense: totals.hostelOperatingExpenses,
     netProfit,
     margin,
     categoryData: buildMergedMonthlyCategoryData(data),
