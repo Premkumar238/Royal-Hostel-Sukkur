@@ -234,9 +234,9 @@ export default function ProfitPage() {
               <div>
                 <h2 className="text-sm font-bold text-gray-900">Download monthly report (PDF)</h2>
                 <p className="text-xs text-gray-600 mt-1 max-w-xl">
-                  Select <strong>any month</strong> (including past months) and download the
-                  complete merged report for that month: student billing, staff salaries, expense
-                  records, mess, shared ledger, hostel profit, and van section.
+                  Open the <strong>month dropdown</strong> (arrow on the right), pick any past
+                  month, then download the complete merged report: student billing, staff salaries,
+                  expense records, mess, shared ledger, hostel profit, and van.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 shrink-0">
