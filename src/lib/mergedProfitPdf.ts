@@ -100,7 +100,12 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
       theme: "striped",
       headStyles: { fillColor: primaryColor, fontSize: 8 },
       bodyStyles: { fontSize: 7 },
-      footStyles: { fillColor: [229, 231, 235], fontStyle: "bold", fontSize: 7 },
+      footStyles: {
+        fillColor: [31, 41, 55],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 8,
+      },
       margin: { left: 14, right: 14 },
     });
     y = doc.lastAutoTable.finalY + 8;
