@@ -230,25 +230,28 @@ export default function LedgerPage() {
                       <table className="w-full text-left text-sm">
                         <thead>
                           <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                            <th className="px-4 py-3">Date</th>
-                            <th className="px-4 py-3 text-right">Paid</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Date</th>
+                            <th className="px-4 py-3 min-w-[6rem]">Notes</th>
+                            <th className="px-4 py-3 text-right whitespace-nowrap">Paid</th>
                             <th className="px-4 py-3 w-10" />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                           {recipientPayments.map((payment) => (
-                            <tr key={payment.id} className="hover:bg-gray-50/50">
-                              <td className="px-4 py-3 text-gray-600">
-                                <span className="whitespace-nowrap">{formatDate(payment.expense_date)}</span>
-                                {payment.description && (
-                                  <p className="text-[11px] text-gray-400 line-clamp-2 mt-0.5">
-                                    {payment.description}
-                                  </p>
-                                )}
+                            <tr key={payment.id} className="hover:bg-gray-50/50 align-top">
+                              <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                                {formatDate(payment.expense_date)}
                                 {payment.hostel_name && payment.hostel_id !== currentHostel?.id && (
-                                  <p className="text-[10px] font-medium text-blue-600 mt-0.5">
+                                  <p className="text-[10px] font-medium text-blue-600 mt-1 max-w-[8rem] leading-snug">
                                     Recorded by {payment.hostel_name}
                                   </p>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-800 break-words max-w-[14rem] sm:max-w-none">
+                                {payment.description?.trim() ? (
+                                  <span title={payment.description}>{payment.description}</span>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-red-600 whitespace-nowrap">
