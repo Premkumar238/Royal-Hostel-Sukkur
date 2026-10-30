@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHostel } from "@/contexts/HostelContext";
-import { getPeerHostelLoginAccount, PLATFORM_NAME } from "@/lib/appConfig";
+import { getPeerHostelFromList } from "@/lib/hostelSwitch";
+import { PLATFORM_NAME } from "@/lib/appConfig";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -161,7 +162,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useAuth();
-  const { currentHostel } = useHostel();
+  const { currentHostel, switchableHostels, switchHostel } = useHostel();
 
   const brandTitle = currentHostel?.name ?? PLATFORM_NAME;
   const pathnameRef = useRef(pathname);
@@ -172,7 +173,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     onClose();
   }, [pathname, onClose]);
 
-  const peerHostel = getPeerHostelLoginAccount(currentHostel?.slug);
+  const peerHostel = getPeerHostelFromList(currentHostel, switchableHostels);
 
   const handleSignOut = async () => {
     onClose();
@@ -180,11 +181,12 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     router.push("/login");
   };
 
-  const handleSwitchHostel = async () => {
+  const handleSwitchHostel = () => {
     if (!peerHostel) return;
     onClose();
-    await signOut();
-    router.push(`/login?hostel=${encodeURIComponent(peerHostel.loginId)}`);
+    switchHostel(peerHostel.id);
+    router.push("/dashboard");
+    router.refresh();
   };
 
   const logoutFooter = (
@@ -196,7 +198,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           className="flex min-h-[48px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-50 active:bg-indigo-100"
         >
           <ArrowLeftRight className="h-[18px] w-[18px] shrink-0" />
-          <span className="truncate text-left">Switch to {peerHostel.displayName}</span>
+          <span className="truncate text-left">Switch to {peerHostel.name}</span>
         </button>
       )}
       <button
