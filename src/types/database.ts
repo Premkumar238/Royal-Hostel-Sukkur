@@ -229,6 +229,18 @@ export interface CashBudget {
   created_at: string;
 }
 
+export interface AdmissionFee {
+  id: string;
+  hostel_id: string;
+  student_id: string;
+  amount: number;
+  payment_date: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  students?: Student;
+}
+
 export interface DashboardStats {
   total_students: number;
   active_students: number;
@@ -237,6 +249,8 @@ export interface DashboardStats {
   vacant_rooms: number;
   maintenance_rooms: number;
   monthly_income: number;
+  monthly_fee_income?: number;
+  monthly_admission_income?: number;
   monthly_expenses: number;
   pending_fees: number;
   total_advance: number;
@@ -336,6 +350,12 @@ export type Database = {
         Row: CashBudget;
         Insert: Partial<CashBudget>;
         Update: Partial<CashBudget>;
+        Relationships: [];
+      };
+      admission_fees: {
+        Row: AdmissionFee;
+        Insert: Partial<AdmissionFee>;
+        Update: Partial<AdmissionFee>;
         Relationships: [];
       };
     };

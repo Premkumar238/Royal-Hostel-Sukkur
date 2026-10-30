@@ -15,9 +15,10 @@ import {
   Building2,
   MessageSquareWarning,
   BookOpen,
-  PiggyBank,
   X,
   Bus,
+  UtensilsCrossed,
+  GraduationCap,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHostel } from "@/contexts/HostelContext";
@@ -30,9 +31,10 @@ const navItems = [
   { href: "/fees", label: "Fees & Invoices", icon: CreditCard },
   { href: "/complaints", label: "Complaints", icon: MessageSquareWarning },
   { href: "/expenses", label: "Expenses", icon: Receipt },
+  { href: "/mess", label: "Mess", icon: UtensilsCrossed },
+  { href: "/admission-fees", label: "Admission Fees", icon: GraduationCap },
   { href: "/van", label: "Van", icon: Bus },
   { href: "/ledger", label: "Ledger", icon: BookOpen },
-  { href: "/cash", label: "Cash", icon: PiggyBank },
   { href: "/profit", label: "Profit Dashboard", icon: TrendingUp },
 ];
 

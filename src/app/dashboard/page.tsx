@@ -19,8 +19,7 @@ import {
   currentBillingMonthDate,
 } from "@/lib/utils";
 import type { MonthCloseResult } from "@/lib/monthCloseUtils";
-import { calculateBusinessBudget } from "@/lib/cashUtils";
-import type { CashBudget, DashboardStats, FinancialChartPoint, FeeRecord, Expense, MonthClosure } from "@/types/database";
+import type { DashboardStats, FinancialChartPoint, FeeRecord, Expense, MonthClosure } from "@/types/database";
 import {
   Users,
   DoorOpen,
@@ -31,7 +30,6 @@ import {
   UserPlus,
   Receipt,
   ShieldCheck,
-  PiggyBank,
   CalendarClock,
   Wallet,
 } from "lucide-react";
@@ -56,10 +54,6 @@ export default function DashboardPage() {
   const [chartData, setChartData] = useState<FinancialChartPoint[]>([]);
   const [recentFees, setRecentFees] = useState<FeeRecord[]>([]);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
-  const [totalBudget, setTotalBudget] = useState(0);
-  const [initialBudget, setInitialBudget] = useState<number | null>(null);
-  const [budgetNetProfit, setBudgetNetProfit] = useState(0);
-  const [remainingAfterStart, setRemainingAfterStart] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [monthCloseNotice, setMonthCloseNotice] = useState<MonthCloseResult | null>(null);
@@ -76,8 +70,7 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setLoading(true);
 
-      const [statsRes, chartRes, feesRes, expensesRes, cashRes, allExpensesRes, allFeesRes, closureRes] =
-        await Promise.all([
+      const [statsRes, chartRes, feesRes, expensesRes, closureRes] = await Promise.all([
         supabase.rpc("get_dashboard_stats", { p_hostel_id: currentHostel.id }),
         supabase.rpc("get_financial_chart", {
           p_hostel_id: currentHostel.id,
@@ -95,13 +88,6 @@ export default function DashboardPage() {
           .eq("hostel_id", currentHostel.id)
           .order("expense_date", { ascending: false })
           .limit(5),
-        supabase.from("cash_budgets").select("*").eq("hostel_id", currentHostel.id),
-        supabase.from("expenses").select("amount, expense_date").eq("hostel_id", currentHostel.id),
-        supabase
-          .from("fee_records")
-          .select("amount, payment_date, billing_month")
-          .eq("hostel_id", currentHostel.id)
-          .in("status", ["paid", "partial"]),
         supabase
           .from("month_closures")
           .select("billing_month, closed_at")
@@ -115,21 +101,6 @@ export default function DashboardPage() {
       if (chartRes.data) setChartData(chartRes.data as unknown as FinancialChartPoint[]);
       if (feesRes.data) setRecentFees(feesRes.data as FeeRecord[]);
       if (expensesRes.data) setRecentExpenses(expensesRes.data as Expense[]);
-
-      const budget = calculateBusinessBudget(
-        (cashRes.data ?? []) as CashBudget[],
-        (allExpensesRes.data ?? []) as { amount: number; expense_date: string }[],
-        (allFeesRes.data ?? []) as {
-          amount: number;
-          payment_date: string | null;
-          billing_month: string;
-        }[]
-      );
-
-      setTotalBudget(budget.budget);
-      setInitialBudget(budget.initialInvestment);
-      setRemainingAfterStart(budget.remainingAfterStartingMonth);
-      setBudgetNetProfit(budget.profitContribution);
 
       if (closureRes.data) {
         setLastMonthClosure(closureRes.data as Pick<MonthClosure, "billing_month" | "closed_at">);
@@ -270,23 +241,15 @@ export default function DashboardPage() {
             icon={Wallet}
             subtitle="Held from active students"
           />
-          <Link href="/cash" className="block transition-opacity hover:opacity-95">
-            <StatCard
-              title="Budget"
-              value={formatCurrency(totalBudget, currentHostel.currency)}
-              icon={PiggyBank}
-              subtitle={
-                initialBudget !== null
-                  ? `After start month ${formatCurrency(remainingAfterStart, currentHostel.currency)} + profit ${formatCurrency(budgetNetProfit, currentHostel.currency)}`
-                  : "Add initial investment in Cash"
-              }
-            />
-          </Link>
           <StatCard
             title="Monthly Income"
             value={formatCurrency(stats?.monthly_income ?? 0, currentHostel.currency)}
             icon={Coins}
-            subtitle="Current Month"
+            subtitle={
+              stats?.monthly_admission_income != null && stats.monthly_admission_income > 0
+                ? `Fees ${formatCurrency(stats.monthly_fee_income ?? 0, currentHostel.currency)} · Admission ${formatCurrency(stats.monthly_admission_income, currentHostel.currency)}`
+                : "Paid fees & admission · current billing month"
+            }
           />
           <StatCard
             title="Net Profit"

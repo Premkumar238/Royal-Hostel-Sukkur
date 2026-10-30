@@ -42,3 +42,22 @@ export async function deleteSharedMessExpense(
 
   return { error: error?.message ?? null };
 }
+
+export interface SharedMessMonthSummary {
+  total_income: number;
+  total_expenses: number;
+  mess_profit: number;
+  billing_month: string;
+}
+
+export async function fetchSharedMessMonthSummary(
+  supabase: SupabaseClient,
+  billingMonthDate: string
+): Promise<{ data: SharedMessMonthSummary | null; error: string | null }> {
+  const { data, error } = await supabase.rpc("get_shared_mess_month_summary", {
+    p_billing_month: billingMonthDate,
+  });
+
+  if (error) return { data: null, error: error.message };
+  return { data: data as SharedMessMonthSummary, error: null };
+}
