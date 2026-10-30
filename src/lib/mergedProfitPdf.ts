@@ -1,4 +1,4 @@
-import type { MergedProfitMonthlyReport } from "@/lib/mergedProfitUtils";
+import type { CombinedProfitTotals, MergedProfitMonthlyReport } from "@/lib/mergedProfitUtils";
 import {
   computeStudentBillingStatus,
   groupStudentBillingByHostel,
@@ -31,7 +31,10 @@ function money(amount: number, currency: string) {
   return formatCurrency(Number(amount || 0), currency);
 }
 
-export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyReport) {
+export async function downloadMergedProfitReportPDF(
+  report: MergedProfitMonthlyReport,
+  profitTotals?: CombinedProfitTotals
+) {
   await loadPdfScripts();
 
   // @ts-expect-error - jspdf loaded from CDN
@@ -39,7 +42,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const currency = report.currency || "PKR";
   const monthLabel = formatMonth(report.billing_month);
-  const totals = summarizeMergedReport(report);
+  const totals = profitTotals ?? summarizeMergedReport(report);
   const primaryColor: [number, number, number] = [37, 99, 235];
   const studentBilling = report.student_billing ?? [];
   const hostelSummaries = report.hostel_summaries ?? [];

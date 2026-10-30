@@ -48,3 +48,42 @@ export function computeFeesAndInvoicesCollectedIncome(
 
   return total;
 }
+
+/** Same rules as Fees & Invoices, from merged report student_billing rows (both hostels). */
+export function computeFeesIncomeFromStudentBilling(
+  rows: {
+    rent_amount: number;
+    mess_amount: number;
+    rent_status: string | null;
+    mess_status: string | null;
+  }[]
+): number {
+  let total = 0;
+
+  for (const row of rows) {
+    const rentDue = Number(row.rent_amount) > 0;
+    const messDue = Number(row.mess_amount) > 0;
+    const rentStatus = rentDue ? row.rent_status ?? "pending" : "none";
+    const messStatus = messDue ? row.mess_status ?? "pending" : "na";
+
+    const invoiceStatus = getCombinedInvoiceStatus(
+      rentStatus as "none" | "pending" | "paid" | "partial",
+      messStatus as "none" | "na" | "pending" | "paid" | "partial"
+    );
+
+    const rent = Number(row.rent_amount || 0);
+    const mess = Number(row.mess_amount || 0);
+
+    if (invoiceStatus === "paid") {
+      total += rent + mess;
+      continue;
+    }
+
+    if (invoiceStatus === "partial") {
+      if (rentStatus === "paid") total += rent;
+      if (messStatus === "paid") total += mess;
+    }
+  }
+
+  return total;
+}

@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FinancialChartPoint } from "@/types/database";
+import {
+  computeFeesAndInvoicesCollectedIncome,
+  computeFeesIncomeFromStudentBilling,
+} from "@/lib/feesIncomeUtils";
 import { getCombinedInvoiceStatus } from "@/lib/studentInvoice";
 
 export type MergedHostelSummary = {
@@ -208,10 +212,8 @@ export function summarizeMergedReport(report: MergedProfitMonthlyReport): Combin
     hostelNetProfit += s.netProfit;
   }
 
-  const feesIncome = hostelSummaries.reduce(
-    (sum, row) => sum + Number(row.rent_collected || 0) + Number(row.mess_collected || 0),
-    0
-  );
+  const feesIncome = computeFeesIncomeFromStudentBilling(report.student_billing ?? []);
+
   const vanRevenue = Number(report.van?.total_revenue ?? 0);
   const admissionIncome = Number(report.admission_income_total ?? 0);
   const outsideMessIncome = Number(report.outside_mess_income_total ?? 0);
@@ -219,12 +221,12 @@ export function summarizeMergedReport(report: MergedProfitMonthlyReport): Combin
   const combinedIncome = feesIncome + vanRevenue + admissionIncome + outsideMessIncome;
 
   const sharedMessTotal = getSharedMessOperatingTotal(report);
-  const staffTotal = hostelSummaries.reduce(
-    (sum, row) => sum + Number(row.staff_expenses || 0),
+  const staffTotal = (report.staff_payments ?? []).reduce(
+    (sum, row) => sum + Number(row.amount || 0),
     0
   );
-  const otherTotal = hostelSummaries.reduce(
-    (sum, row) => sum + Number(row.other_expenses || 0),
+  const otherTotal = (report.expenses ?? []).reduce(
+    (sum, row) => sum + Number(row.amount || 0),
     0
   );
   const ledgerTotal = (report.shared_ledger ?? []).reduce(
@@ -282,6 +284,43 @@ export async function fetchMergedProfitMonthlyReport(
   return { data: (data ?? null) as MergedProfitMonthlyReport | null, error: null };
 }
 
+export async function enrichMergedReportTotals(
+  supabase: SupabaseClient,
+  report: MergedProfitMonthlyReport,
+  billingMonthDate: string
+): Promise<CombinedProfitTotals> {
+  const base = summarizeMergedReport(report);
+  const hostelIds = (report.hostel_summaries ?? []).map((h) => h.hostel_id);
+  if (hostelIds.length === 0) return base;
+
+  const [{ data: students }, { data: feeRecords }] = await Promise.all([
+    supabase.from("students").select("*").in("hostel_id", hostelIds).eq("status", "active"),
+    supabase
+      .from("fee_records")
+      .select("*")
+      .in("hostel_id", hostelIds)
+      .eq("billing_month", billingMonthDate),
+  ]);
+
+  const feesIncome =
+    students && feeRecords
+      ? computeFeesAndInvoicesCollectedIncome(students, feeRecords)
+      : base.feesIncome;
+
+  const combinedIncome =
+    feesIncome + base.vanRevenue + base.admissionIncome + base.outsideMessIncome;
+  const combinedNetProfit = combinedIncome - base.combinedExpense;
+
+  return {
+    ...base,
+    feesIncome,
+    combinedIncome,
+    combinedNetProfit,
+    grandIncome: combinedIncome,
+    grandNetProfit: combinedNetProfit,
+  };
+}
+
 export async function fetchMergedProfitCurrentMonthDashboard(
   supabase: SupabaseClient,
   billingMonthDate: string
@@ -299,7 +338,7 @@ export async function fetchMergedProfitCurrentMonthDashboard(
     };
   }
 
-  const totals = summarizeMergedReport(data);
+  const totals = await enrichMergedReportTotals(supabase, data, billingMonthDate);
   const totalIncome = totals.combinedIncome;
   const totalExpense = totals.combinedExpense;
   const netProfit = totals.combinedNetProfit;

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
+  enrichMergedReportTotals,
   fetchMergedProfitCurrentMonthDashboard,
   fetchMergedProfitMonthlyReport,
 } from "@/lib/mergedProfitUtils";
@@ -48,6 +49,7 @@ export default function ProfitPage() {
   const [margin, setMargin] = useState(0);
   const [vanNetProfit, setVanNetProfit] = useState(0);
   const [categoryData, setCategoryData] = useState<CategoryExpense[]>([]);
+  const [feesPart, setFeesPart] = useState(0);
 
   const supabase = createClient();
   const currentMonthDate = currentBillingMonthDate();
@@ -74,6 +76,7 @@ export default function ProfitPage() {
     setMargin(dashboard.margin);
     setVanNetProfit(dashboard.vanNetProfit);
     setCategoryData(dashboard.categoryData);
+    setFeesPart(dashboard.totals?.feesIncome ?? 0);
     setLoading(false);
   }, [currentMonthDate, supabase]);
 
@@ -101,7 +104,8 @@ export default function ProfitPage() {
         setError(reportError || "Could not build monthly report.");
         return;
       }
-      await downloadMergedProfitReportPDF(data);
+      const totals = await enrichMergedReportTotals(supabase, data, downloadMonthDate);
+      await downloadMergedProfitReportPDF(data, totals);
     } catch (err) {
       setError(err instanceof Error ? err.message : "PDF download failed.");
     } finally {
@@ -151,7 +155,7 @@ export default function ProfitPage() {
               title="Combined Income"
               value={formatCurrency(totalIncome, currency)}
               icon={Coins}
-              subtitle={`${monthLabel} — fees, van, admission, outside mess`}
+              subtitle={`${monthLabel} — fees ${formatCurrency(feesPart, currency)} (both hostels, fee month)`}
             />
             <StatCard
               title="Combined Expenses"
