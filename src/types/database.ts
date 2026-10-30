@@ -183,6 +183,8 @@ export interface FeeRecord {
   billing_month: string;
   amount: number;
   payment_date: string | null;
+  /** Which month counts this payment in cash/advance income (set by DB). */
+  income_month?: string | null;
   status: FeeStatus;
   fee_type: FeeType;
   invoice_code: string | null;
@@ -283,6 +285,19 @@ export interface MonthClosure {
     monthly_expenses?: number;
     pending_fees?: number;
     net_profit?: number;
+    total_combined_income?: number;
+    total_combined_expenses?: number;
+    fees_and_invoice_income?: number;
+    admission_fee_income?: number;
+    mess_income?: number;
+    mess_expenses?: number;
+    van_income?: number;
+    van_expenses?: number;
+    general_expenses?: number;
+    ledger_payments?: number;
+    outstanding_student_fees?: number;
+    advance_fee_payments?: number;
+    previous_month_fee_collections?: number;
   };
   created_at: string;
 }
