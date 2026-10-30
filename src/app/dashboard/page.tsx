@@ -17,9 +17,19 @@ import {
   formatDateTime,
   formatMonth,
   currentBillingMonthDate,
+  currentYearMonth,
+  yearMonthDateRange,
 } from "@/lib/utils";
 import type { MonthCloseResult } from "@/lib/monthCloseUtils";
-import type { DashboardStats, FinancialChartPoint, FeeRecord, Expense, MonthClosure } from "@/types/database";
+import { computeFeesAndInvoicesCollectedIncome } from "@/lib/feesIncomeUtils";
+import type {
+  DashboardStats,
+  FinancialChartPoint,
+  FeeRecord,
+  Expense,
+  MonthClosure,
+  Student,
+} from "@/types/database";
 import {
   Users,
   DoorOpen,
@@ -59,7 +69,10 @@ export default function DashboardPage() {
   const [monthCloseNotice, setMonthCloseNotice] = useState<MonthCloseResult | null>(null);
   const [lastMonthClosure, setLastMonthClosure] = useState<Pick<MonthClosure, "billing_month" | "closed_at"> | null>(null);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
+  const [feesIncome, setFeesIncome] = useState(0);
+  const [admissionIncome, setAdmissionIncome] = useState(0);
   const supabase = createClient();
+  const billingMonthDate = currentBillingMonthDate();
 
   useEffect(() => {
     if (!currentHostel) {
@@ -70,7 +83,10 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setLoading(true);
 
-      const [statsRes, chartRes, feesRes, expensesRes, closureRes] = await Promise.all([
+      const admissionRange = yearMonthDateRange(currentYearMonth());
+
+      const [statsRes, chartRes, feesRes, expensesRes, closureRes, studentsRes, monthFeesRes, admissionRes] =
+        await Promise.all([
         supabase.rpc("get_dashboard_stats", { p_hostel_id: currentHostel.id }),
         supabase.rpc("get_financial_chart", {
           p_hostel_id: currentHostel.id,
@@ -95,7 +111,33 @@ export default function DashboardPage() {
           .order("closed_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("students")
+          .select("*")
+          .eq("hostel_id", currentHostel.id)
+          .eq("status", "active"),
+        supabase
+          .from("fee_records")
+          .select("*")
+          .eq("hostel_id", currentHostel.id)
+          .eq("billing_month", billingMonthDate),
+        supabase
+          .from("admission_fees")
+          .select("amount")
+          .eq("hostel_id", currentHostel.id)
+          .gte("payment_date", admissionRange.start)
+          .lte("payment_date", admissionRange.end),
       ]);
+
+      const activeStudents = (studentsRes.data ?? []) as Student[];
+      const monthFeeRecords = (monthFeesRes.data ?? []) as FeeRecord[];
+      const collectedFees = computeFeesAndInvoicesCollectedIncome(activeStudents, monthFeeRecords);
+      const admissionTotal = (admissionRes.data ?? []).reduce(
+        (sum, row) => sum + Number(row.amount),
+        0
+      );
+      setFeesIncome(collectedFees);
+      setAdmissionIncome(admissionTotal);
 
       if (statsRes.data) setStats(statsRes.data as unknown as DashboardStats);
       if (chartRes.data) setChartData(chartRes.data as unknown as FinancialChartPoint[]);
@@ -112,7 +154,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [currentHostel, supabase, dataRefreshKey]);
+  }, [billingMonthDate, currentHostel, supabase, dataRefreshKey]);
 
   useEffect(() => {
     const onMonthClosed = (event: Event) => {
@@ -125,8 +167,9 @@ export default function DashboardPage() {
     return () => window.removeEventListener("hostel:month-closed", onMonthClosed);
   }, []);
 
-  const netProfit = stats ? stats.monthly_income - stats.monthly_expenses : 0;
-  const profitMargin = stats ? calcProfitMargin(stats.monthly_income, stats.monthly_expenses) : 0;
+  const totalMonthlyIncome = feesIncome + admissionIncome;
+  const netProfit = stats ? totalMonthlyIncome - stats.monthly_expenses : 0;
+  const profitMargin = stats ? calcProfitMargin(totalMonthlyIncome, stats.monthly_expenses) : 0;
   const occupancyRate = stats ? calcOccupancyRate(stats.occupied_rooms, stats.total_rooms) : 0;
 
   const occupancyData = stats
@@ -250,12 +293,12 @@ export default function DashboardPage() {
           <div className="h-full lg:col-span-3 xl:col-span-1">
             <StatCard
               title="Monthly Income"
-              value={formatCurrency(stats?.monthly_income ?? 0, currentHostel.currency)}
+              value={formatCurrency(feesIncome, currentHostel.currency)}
               icon={Coins}
               subtitle={
-                stats?.monthly_admission_income != null && stats.monthly_admission_income > 0
-                  ? `Fees ${formatCurrency(stats.monthly_fee_income ?? 0, currentHostel.currency)} · Admission ${formatCurrency(stats.monthly_admission_income, currentHostel.currency)}`
-                  : "Paid fees & admission · current billing month"
+                admissionIncome > 0
+                  ? `Fees & Invoices (paid) · +${formatCurrency(admissionIncome, currentHostel.currency)} admission`
+                  : "Matches Fees & Invoices (paid) · current month"
               }
             />
           </div>

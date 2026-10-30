@@ -113,13 +113,21 @@ export default function ExpensesPage() {
     e.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  const openAddModal = () => {
+    setTitle("");
+    setAmount("");
+    setExpenseDate(new Date().toISOString().split("T")[0]);
+    setDescription("");
+    setShowLogModal(true);
+  };
+
   return (
     <AdminLayout>
       <Header title="Expenses" searchPlaceholder="Quick search..." />
 
-      <div className="page-shell space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+      <div className="page-shell">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <h2 className="text-sm font-bold text-gray-900">Expense Records</h2>
             <p className="text-xs text-gray-400 mt-0.5">
               Current month only ({formatMonth(`${expenseRecordsMonth}-01`)}) — mess and other modules
@@ -127,29 +135,28 @@ export default function ExpensesPage() {
             </p>
           </div>
           <button
-            onClick={() => {
-              setTitle("");
-              setAmount("");
-              setExpenseDate(new Date().toISOString().split("T")[0]);
-              setDescription("");
-              setShowLogModal(true);
-            }}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 cursor-pointer shadow-sm"
+            type="button"
+            onClick={openAddModal}
+            className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 cursor-pointer shadow-sm sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             <span>Add Expense</span>
           </button>
         </div>
 
-        <div className="toolbar-search max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by expense name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-          />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="toolbar-controls w-full min-w-0 lg:flex-1">
+            <div className="toolbar-search">
+              <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by expense name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -166,24 +173,36 @@ export default function ExpensesPage() {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    <th className="px-6 py-4">Expense Name</th>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4">Amount</th>
-                    <th className="px-6 py-4">Notes</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Expense Name</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap">Date</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap">Amount</th>
+                    <th className="hidden px-4 py-3 sm:table-cell sm:px-6 sm:py-4">Notes</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredExpenses.map((exp) => (
                     <tr key={exp.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-gray-900">{exp.title}</td>
-                      <td className="px-6 py-4 text-gray-600">{formatDate(exp.expense_date)}</td>
-                      <td className="px-6 py-4 font-semibold text-red-600">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                        <span className="font-semibold text-gray-900 block">{exp.title}</span>
+                        {exp.description && (
+                          <span className="text-xs text-gray-400 line-clamp-2 sm:hidden">
+                            {exp.description}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-gray-600 whitespace-nowrap">
+                        {formatDate(exp.expense_date)}
+                      </td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 font-semibold text-red-600 whitespace-nowrap">
                         -{formatCurrency(Number(exp.amount), currentHostel?.currency)}
                       </td>
-                      <td className="px-6 py-4 text-gray-500 max-w-xs truncate">{exp.description ?? "—"}</td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="hidden px-4 py-3 sm:table-cell sm:px-6 sm:py-4 text-gray-500 max-w-xs truncate">
+                        {exp.description ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-right">
                         <button
+                          type="button"
                           onClick={() => handleDeleteExpense(exp.id)}
                           className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
                         >
@@ -204,6 +223,7 @@ export default function ExpensesPage() {
           <div className="modal-backdrop" onClick={() => setShowLogModal(false)} />
           <div className="modal-panel max-w-md">
             <button
+              type="button"
               onClick={() => setShowLogModal(false)}
               className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
             >

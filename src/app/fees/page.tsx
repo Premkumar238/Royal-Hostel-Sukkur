@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { StudentWhatsAppButton } from "@/components/ui/StudentWhatsAppButton";
 import { formatCurrency, formatDate, currentYearMonth, formatMonth } from "@/lib/utils";
 import { returnStudentFeesForMonth } from "@/lib/feeRecordUtils";
+import { computeFeesAndInvoicesCollectedIncome } from "@/lib/feesIncomeUtils";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { getMessTotal, hasAnyMess } from "@/lib/messUtils";
 import {
@@ -149,6 +150,11 @@ function FeesPageContent() {
     (row) => row.messStatus !== "na" && row.messStatus !== "paid"
   ).length;
 
+  const collectedIncome = useMemo(
+    () => computeFeesAndInvoicesCollectedIncome(students, feeRecords),
+    [students, feeRecords]
+  );
+
   const canPayRow = (row: StudentFeeInvoiceRow) => {
     if (row.total <= 0) return false;
     const rentDue = row.rentStatus !== "na" && row.rentStatus !== "paid";
@@ -191,16 +197,23 @@ function FeesPageContent() {
 
   return (
     <div className="page-shell">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+        <div className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Active Students</span>
           <p className="mt-1 text-2xl font-bold text-gray-900">{students.length}</p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex h-full flex-col rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Fees Collected</span>
+          <p className="mt-1 text-2xl font-bold text-blue-900">
+            {formatCurrency(collectedIncome, currentHostel?.currency)}
+          </p>
+          <p className="mt-auto pt-1 text-xs text-blue-700/80">Paid invoices this month</p>
+        </div>
+        <div className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pending Rent</span>
           <p className="mt-1 text-2xl font-bold text-amber-600">{pendingRentCount}</p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pending Mess</span>
           <p className="mt-1 text-2xl font-bold text-emerald-700">{pendingMessCount}</p>
         </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -33,7 +33,7 @@ function LoginHeroImage({ className, sizes }: { className?: string; sizes: strin
   );
 }
 
-export default function LoginPage() {
+function LoginPageInner() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -41,6 +41,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const hostelLoginId = searchParams.get("hostel");
+    if (!hostelLoginId) return;
+    const account = HOSTEL_LOGIN_ACCOUNTS.find((a) => a.loginId === hostelLoginId);
+    if (account) {
+      setUsername(account.displayName);
+      setError("");
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,5 +222,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[100dvh] items-center justify-center bg-white text-sm text-gray-500">
+          Loading…
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   );
 }

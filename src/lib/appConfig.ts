@@ -36,6 +36,16 @@ export const HOSTEL_LOGIN_ACCOUNTS: HostelLoginAccount[] = [
   },
 ];
 
+/** Other Royal Girls hostel login (1 ↔ 2) for sidebar switch. */
+export function getPeerHostelLoginAccount(
+  currentSlug: string | undefined | null
+): HostelLoginAccount | null {
+  if (!currentSlug) return null;
+  const current = HOSTEL_LOGIN_ACCOUNTS.find((a) => a.hostelSlug === currentSlug);
+  if (!current) return null;
+  return HOSTEL_LOGIN_ACCOUNTS.find((a) => a.hostelSlug !== currentSlug) ?? null;
+}
+
 export function resolveHostelLoginAccount(username: string): HostelLoginAccount | null {
   const q = username.trim().toLowerCase();
   if (!q) return null;

@@ -13,6 +13,7 @@ import {
   TrendingUp,
   LogOut,
   Building2,
+  ArrowLeftRight,
   MessageSquareWarning,
   BookOpen,
   X,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHostel } from "@/contexts/HostelContext";
-import { PLATFORM_NAME } from "@/lib/appConfig";
+import { getPeerHostelLoginAccount, PLATFORM_NAME } from "@/lib/appConfig";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -171,14 +172,33 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     onClose();
   }, [pathname, onClose]);
 
+  const peerHostel = getPeerHostelLoginAccount(currentHostel?.slug);
+
   const handleSignOut = async () => {
     onClose();
     await signOut();
     router.push("/login");
   };
 
+  const handleSwitchHostel = async () => {
+    if (!peerHostel) return;
+    onClose();
+    await signOut();
+    router.push(`/login?hostel=${encodeURIComponent(peerHostel.loginId)}`);
+  };
+
   const logoutFooter = (
-    <div className="shrink-0 border-t border-gray-100 p-3">
+    <div className="shrink-0 space-y-1 border-t border-gray-100 p-3">
+      {peerHostel && (
+        <button
+          type="button"
+          onClick={handleSwitchHostel}
+          className="flex min-h-[48px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-50 active:bg-indigo-100"
+        >
+          <ArrowLeftRight className="h-[18px] w-[18px] shrink-0" />
+          <span className="truncate text-left">Switch to {peerHostel.displayName}</span>
+        </button>
+      )}
       <button
         type="button"
         onClick={handleSignOut}
