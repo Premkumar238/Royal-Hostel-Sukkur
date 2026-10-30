@@ -188,7 +188,7 @@ export default function DashboardPage() {
               <strong className="text-gray-800">{formatMonth(currentBillingMonthDate())}</strong>
               <span className="hidden sm:inline">
                 {" "}
-                · Income, expenses, and pending fees show this month only · Budget and ledger are cumulative
+                · Income, expenses, and pending fees show this month only · Ledger is cumulative
               </span>
             </p>
             {lastMonthClosure ? (
@@ -214,49 +214,59 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            title="Total Students"
-            value={String(stats?.active_students ?? 0)}
-            icon={Users}
-            subtitle={`${stats?.total_students ?? 0} total enrolled`}
-          />
-          <StatCard
-            title="Total Rooms"
-            value={String(stats?.total_rooms ?? 0)}
-            icon={DoorOpen}
-            subtitle={`${stats?.occupied_rooms ?? 0} Occupied (${occupancyRate}%) · ${stats?.vacant_rooms ?? 0} Vacant`}
-          >
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
-              <div
-                className="h-full rounded-full bg-blue-600 transition-all"
-                style={{ width: `${occupancyRate}%` }}
-              />
-            </div>
-          </StatCard>
-          <StatCard
-            title="Security Advance"
-            value={formatCurrency(stats?.total_advance ?? 0, currentHostel.currency)}
-            icon={Wallet}
-            subtitle="Held from active students"
-          />
-          <StatCard
-            title="Monthly Income"
-            value={formatCurrency(stats?.monthly_income ?? 0, currentHostel.currency)}
-            icon={Coins}
-            subtitle={
-              stats?.monthly_admission_income != null && stats.monthly_admission_income > 0
-                ? `Fees ${formatCurrency(stats.monthly_fee_income ?? 0, currentHostel.currency)} · Admission ${formatCurrency(stats.monthly_admission_income, currentHostel.currency)}`
-                : "Paid fees & admission · current billing month"
-            }
-          />
-          <StatCard
-            title="Net Profit"
-            value={formatCurrency(netProfit, currentHostel.currency)}
-            icon={TrendingUp}
-            subtitle={`Profit Margin ${profitMargin}%`}
-          />
+        {/* Stats Row — 3 + 2 centered on lg, single row on xl */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6 xl:grid-cols-5 items-stretch">
+          <div className="h-full lg:col-span-2 xl:col-span-1">
+            <StatCard
+              title="Total Students"
+              value={String(stats?.active_students ?? 0)}
+              icon={Users}
+              subtitle={`${stats?.total_students ?? 0} total enrolled`}
+            />
+          </div>
+          <div className="h-full lg:col-span-2 xl:col-span-1">
+            <StatCard
+              title="Total Rooms"
+              value={String(stats?.total_rooms ?? 0)}
+              icon={DoorOpen}
+              subtitle={`${stats?.occupied_rooms ?? 0} Occupied (${occupancyRate}%) · ${stats?.vacant_rooms ?? 0} Vacant`}
+            >
+              <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                <div
+                  className="h-full rounded-full bg-blue-600 transition-all"
+                  style={{ width: `${occupancyRate}%` }}
+                />
+              </div>
+            </StatCard>
+          </div>
+          <div className="h-full lg:col-span-2 xl:col-span-1">
+            <StatCard
+              title="Security Advance"
+              value={formatCurrency(stats?.total_advance ?? 0, currentHostel.currency)}
+              icon={Wallet}
+              subtitle="Held from active students"
+            />
+          </div>
+          <div className="h-full lg:col-span-3 xl:col-span-1">
+            <StatCard
+              title="Monthly Income"
+              value={formatCurrency(stats?.monthly_income ?? 0, currentHostel.currency)}
+              icon={Coins}
+              subtitle={
+                stats?.monthly_admission_income != null && stats.monthly_admission_income > 0
+                  ? `Fees ${formatCurrency(stats.monthly_fee_income ?? 0, currentHostel.currency)} · Admission ${formatCurrency(stats.monthly_admission_income, currentHostel.currency)}`
+                  : "Paid fees & admission · current billing month"
+              }
+            />
+          </div>
+          <div className="h-full lg:col-span-3 xl:col-span-1">
+            <StatCard
+              title="Net Profit"
+              value={formatCurrency(netProfit, currentHostel.currency)}
+              icon={TrendingUp}
+              subtitle={`Profit Margin ${profitMargin}%`}
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2.5">

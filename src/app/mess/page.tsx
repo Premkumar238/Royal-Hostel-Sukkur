@@ -20,8 +20,6 @@ import {
   Loader2,
   Plus,
   Trash2,
-  TrendingDown,
-  TrendingUp,
   UtensilsCrossed,
   X,
 } from "lucide-react";
@@ -121,59 +119,65 @@ export default function MessPage() {
       <Header title="Mess" searchPlaceholder="Quick search..." />
 
       <div className="page-shell space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-gray-900">Mess Operations</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Shared mess income and expenses for Royal Girls Hostel 1 + 2
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <MonthPicker id="mess-billing-month" value={billingMonth} onChange={setBillingMonth} />
-            <button
-              onClick={openDailyMessModal}
-              className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-orange-700 cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Daily Expense</span>
-            </button>
+        <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+          <div className="flex items-start gap-2">
+            <UtensilsCrossed className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">Shared Mess — Royal Girls Hostel 1 + Hostel 2</p>
+              <p className="text-xs text-orange-800 mt-0.5">
+                Income from mess fees and daily mess expenses are shared across both hostel logins.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-            <div className="flex items-center gap-2 text-emerald-700">
-              <TrendingUp className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Total Mess Income</span>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-emerald-900">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <MonthPicker
+            id="mess-billing-month"
+            value={billingMonth}
+            onChange={setBillingMonth}
+            className="w-full sm:w-auto"
+          />
+          <button
+            onClick={openDailyMessModal}
+            className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-600 px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-orange-700 cursor-pointer sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Daily Expense</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 items-stretch">
+          <div className="flex h-full flex-col rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+              Total Mess Income
+            </span>
+            <p className="mt-1 text-2xl font-bold text-emerald-900">
               {formatCurrency(totalIncome, currency)}
             </p>
-            <p className="text-xs text-emerald-700/80 mt-1">
+            <p className="mt-auto pt-1 text-xs text-emerald-700/80">
               Paid mess fees · {formatMonth(billingMonthDate)}
             </p>
           </div>
-          <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-sm">
-            <div className="flex items-center gap-2 text-orange-700">
-              <TrendingDown className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Total Mess Expenses</span>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-orange-900">
+          <div className="flex h-full flex-col rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-sm">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-orange-700">
+              Total Mess Expenses
+            </span>
+            <p className="mt-1 text-2xl font-bold text-orange-900">
               {formatCurrency(totalExpenses, currency)}
             </p>
-            <p className="text-xs text-orange-700/80 mt-1">
+            <p className="mt-auto pt-1 text-xs text-orange-700/80">
               {messExpenses.length} daily entries
             </p>
           </div>
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
-            <div className="flex items-center gap-2 text-indigo-700">
-              <UtensilsCrossed className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Mess Profit</span>
-            </div>
-            <p className={`mt-2 text-2xl font-bold ${messProfit >= 0 ? "text-indigo-900" : "text-red-700"}`}>
+          <div className="flex h-full flex-col rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+              Mess Profit
+            </span>
+            <p className={`mt-1 text-2xl font-bold ${messProfit >= 0 ? "text-indigo-900" : "text-red-700"}`}>
               {formatCurrency(messProfit, currency)}
             </p>
-            <p className="text-xs text-indigo-700/80 mt-1">Income minus mess expenses</p>
+            <p className="mt-auto pt-1 text-xs text-indigo-700/80">Income minus mess expenses</p>
           </div>
         </div>
 

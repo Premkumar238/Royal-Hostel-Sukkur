@@ -117,8 +117,8 @@ export default function AdmissionFeesPage() {
       <Header title="Admission Fees" searchPlaceholder="Quick search..." />
 
       <div className="page-shell space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h2 className="text-sm font-bold text-gray-900">Admission Fee Records</h2>
             <p className="text-xs text-gray-400 mt-0.5">
               One admission fee per student · counted separately in hostel income
@@ -127,20 +127,21 @@ export default function AdmissionFeesPage() {
           <button
             onClick={openModal}
             disabled={eligibleStudents.length === 0}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer shadow-sm"
+            className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer shadow-sm sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             <span>Record Admission Fee</span>
           </button>
         </div>
 
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm max-w-sm">
-          <div className="flex items-center gap-2 text-blue-700">
-            <GraduationCap className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Total Collected</span>
+        <div className="grid grid-cols-1 gap-4 sm:max-w-xs">
+          <div className="flex h-full flex-col rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">
+              Total Collected
+            </span>
+            <p className="mt-1 text-2xl font-bold text-blue-900">{formatCurrency(totalCollected, currency)}</p>
+            <p className="mt-auto pt-1 text-xs text-blue-700/80">{records.length} students</p>
           </div>
-          <p className="mt-2 text-2xl font-bold text-blue-900">{formatCurrency(totalCollected, currency)}</p>
-          <p className="text-xs text-blue-700/80 mt-1">{records.length} students</p>
         </div>
 
         {loading ? (
