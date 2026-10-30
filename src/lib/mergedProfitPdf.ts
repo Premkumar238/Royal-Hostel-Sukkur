@@ -44,10 +44,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   const studentBilling = report.student_billing ?? [];
   const hostelSummaries = report.hostel_summaries ?? [];
   const hostelCountForProfit = Math.max(hostelSummaries.length, 1);
-  const finalNetProfitExcludingLedger = hostelSummaries.reduce(
-    (sum, row) => sum + summarizeHostelRow(row, hostelCountForProfit).netProfit,
-    0
-  );
+  const combinedNetProfit = totals.combinedNetProfit;
   const staffPayments = report.staff_payments ?? [];
   const expenses = report.expenses ?? [];
   const messExpenses = report.mess_expenses ?? [];
@@ -64,7 +61,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   doc.text(`Billing Month: ${monthLabel}`, 14, 21);
   doc.text(`Generated: ${new Date().toLocaleString()}`, 120, 21);
   doc.setFontSize(8);
-  doc.text("Net profit excludes shared ledger", 14, 26);
+  doc.text("Income uses fee month (billing_month); advance fees count in their fee month", 14, 26);
 
   let y = 36;
 
@@ -75,31 +72,29 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   y += 6;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(`Total Income (Rent + Mess): ${money(totals.grandIncome, currency)}`, 14, y);
+  doc.text(`Combined Income: ${money(totals.combinedIncome, currency)}`, 14, y);
   y += 5;
   doc.text(
-    `Hostel Expenses — Staff: ${money(totals.staffTotal, currency)} · Shared Mess Ops: ${money(totals.sharedMessTotal, currency)} · Other: ${money(totals.otherTotal, currency)}`,
+    `Fees (rent + mess): ${money(totals.feesIncome, currency)} · Van: ${money(totals.vanRevenue, currency)} · Admission: ${money(totals.admissionIncome, currency)} · Outside mess: ${money(totals.outsideMessIncome, currency)}`,
     14,
     y
   );
   y += 5;
+  doc.text(`Combined Expenses: ${money(totals.combinedExpense, currency)}`, 14, y);
+  y += 5;
   doc.text(
-    `Shared Ledger (own section below — NOT deducted from net profit): ${money(totals.ledgerTotal, currency)}`,
+    `Mess ops: ${money(totals.sharedMessTotal, currency)} · General: ${money(totals.otherTotal, currency)} · Van: ${money(totals.vanExpenses, currency)} · Ledger: ${money(totals.ledgerTotal, currency)} · Staff: ${money(totals.staffTotal, currency)}`,
     14,
     y
   );
   y += 5;
   doc.setFont("helvetica", "bold");
   doc.setTextColor(
-    finalNetProfitExcludingLedger >= 0 ? 22 : 220,
-    finalNetProfitExcludingLedger >= 0 ? 101 : 38,
-    finalNetProfitExcludingLedger >= 0 ? 52 : 38
+    combinedNetProfit >= 0 ? 22 : 220,
+    combinedNetProfit >= 0 ? 101 : 38,
+    combinedNetProfit >= 0 ? 52 : 38
   );
-  doc.text(
-    `Final Net Profit: ${money(finalNetProfitExcludingLedger, currency)}`,
-    14,
-    y
-  );
+  doc.text(`Combined Net Profit: ${money(combinedNetProfit, currency)}`, 14, y);
   y += 8;
 
   const addSectionTable = (
@@ -301,7 +296,7 @@ export async function downloadMergedProfitReportPDF(report: MergedProfitMonthlyR
   doc.setTextColor(109, 40, 217);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("Van Service — Separate from Hostel Profit", 14, y);
+  doc.text("Van Service (included in combined income & expenses above)", 14, y);
   y += 6;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);

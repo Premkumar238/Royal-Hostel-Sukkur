@@ -151,23 +151,19 @@ export default function ProfitPage() {
               title="Combined Income"
               value={formatCurrency(totalIncome, currency)}
               icon={Coins}
-              subtitle={`${monthLabel} — rent + mess collected`}
+              subtitle={`${monthLabel} — fees, van, admission, outside mess`}
             />
             <StatCard
               title="Combined Expenses"
               value={formatCurrency(totalExpense, currency)}
               icon={TrendingDown}
-              subtitle={`${monthLabel} — staff, mess, ledger, other`}
+              subtitle={`${monthLabel} — mess, general, van, ledger`}
             />
             <StatCard
-              title="Hostel Net Profit"
+              title="Combined Net Profit"
               value={formatCurrency(netProfit, currency)}
               icon={TrendingUp}
-              subtitle={
-                netProfit >= 0
-                  ? `${monthLabel} — excludes van`
-                  : `${monthLabel} — combined loss`
-              }
+              subtitle={`${monthLabel} — income minus all expenses`}
             />
             <StatCard
               title="Net Profit Margin"
@@ -215,7 +211,7 @@ export default function ProfitPage() {
                 <Bus className="h-4 w-4" />
                 <h3 className="text-sm font-semibold">Van profit — {monthLabel}</h3>
               </div>
-              <p className="text-xs text-violet-800 mt-1 mb-4">Separate from hostel profit</p>
+              <p className="text-xs text-violet-800 mt-1 mb-4">Van is included in combined totals above</p>
               <p
                 className={`text-2xl font-bold ${
                   vanNetProfit >= 0 ? "text-violet-900" : "text-red-700"

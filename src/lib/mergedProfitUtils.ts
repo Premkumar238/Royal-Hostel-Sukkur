@@ -78,6 +78,31 @@ export type MergedProfitMonthlyReport = {
     total_expenses: number;
     net_profit: number;
   };
+  admission_income_total?: number;
+  outside_mess_income_total?: number;
+};
+
+export type CombinedProfitTotals = {
+  combinedIncome: number;
+  combinedExpense: number;
+  combinedNetProfit: number;
+  feesIncome: number;
+  vanRevenue: number;
+  admissionIncome: number;
+  outsideMessIncome: number;
+  sharedMessTotal: number;
+  staffTotal: number;
+  otherTotal: number;
+  ledgerTotal: number;
+  vanExpenses: number;
+  /** @deprecated use combinedIncome */
+  grandIncome: number;
+  /** @deprecated use combinedExpense */
+  grandExpenses: number;
+  /** @deprecated use combinedNetProfit */
+  grandNetProfit: number;
+  hostelOperatingExpenses: number;
+  hostelNetProfit: number;
 };
 
 export function computeStudentBillingStatus(row: StudentBillingRow): string {
@@ -160,29 +185,38 @@ export function buildMergedMonthlyCategoryData(
     map.set(name, (map.get(name) ?? 0) + Number(ledger.amount || 0));
   }
 
+  const vanExpenseTotal = Number(report.van?.total_expenses ?? 0);
+  if (vanExpenseTotal > 0) {
+    map.set("Van Operating", (map.get("Van Operating") ?? 0) + vanExpenseTotal);
+  }
+
   return [...map.entries()]
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
 }
 
-export function summarizeMergedReport(report: MergedProfitMonthlyReport) {
-  let grandIncome = 0;
-  let hostelOperatingExpenses = 0;
-  let hostelNetProfit = 0;
+/** Combined profit for a billing month (fee month), both hostels — dashboard & PDF. */
+export function summarizeMergedReport(report: MergedProfitMonthlyReport): CombinedProfitTotals {
   const hostelSummaries = report.hostel_summaries ?? [];
   const hostelCount = Math.max(hostelSummaries.length, 1);
 
+  let hostelNetProfit = 0;
+  let hostelOperatingExpenses = 0;
   for (const row of hostelSummaries) {
     const s = summarizeHostelRow(row, hostelCount);
-    grandIncome += s.totalIncome;
     hostelOperatingExpenses += s.totalExpenses;
     hostelNetProfit += s.netProfit;
   }
 
-  const ledgerTotal = (report.shared_ledger ?? []).reduce(
-    (sum, row) => sum + Number(row.amount || 0),
+  const feesIncome = hostelSummaries.reduce(
+    (sum, row) => sum + Number(row.rent_collected || 0) + Number(row.mess_collected || 0),
     0
   );
+  const vanRevenue = Number(report.van?.total_revenue ?? 0);
+  const admissionIncome = Number(report.admission_income_total ?? 0);
+  const outsideMessIncome = Number(report.outside_mess_income_total ?? 0);
+
+  const combinedIncome = feesIncome + vanRevenue + admissionIncome + outsideMessIncome;
 
   const sharedMessTotal = getSharedMessOperatingTotal(report);
   const staffTotal = hostelSummaries.reduce(
@@ -193,20 +227,34 @@ export function summarizeMergedReport(report: MergedProfitMonthlyReport) {
     (sum, row) => sum + Number(row.other_expenses || 0),
     0
   );
+  const ledgerTotal = (report.shared_ledger ?? []).reduce(
+    (sum, row) => sum + Number(row.amount || 0),
+    0
+  );
+  const vanExpenses = Number(report.van?.total_expenses ?? 0);
 
-  const grandExpenses = hostelOperatingExpenses;
-  const grandNetProfit = hostelNetProfit;
+  const combinedExpense =
+    sharedMessTotal + staffTotal + otherTotal + ledgerTotal + vanExpenses;
+  const combinedNetProfit = combinedIncome - combinedExpense;
 
   return {
-    grandIncome,
-    grandExpenses,
-    grandNetProfit,
-    ledgerTotal,
-    hostelNetProfit,
-    hostelOperatingExpenses,
+    combinedIncome,
+    combinedExpense,
+    combinedNetProfit,
+    feesIncome,
+    vanRevenue,
+    admissionIncome,
+    outsideMessIncome,
     sharedMessTotal,
     staffTotal,
     otherTotal,
+    ledgerTotal,
+    vanExpenses,
+    grandIncome: combinedIncome,
+    grandExpenses: combinedExpense,
+    grandNetProfit: combinedNetProfit,
+    hostelOperatingExpenses,
+    hostelNetProfit,
   };
 }
 
@@ -252,19 +300,20 @@ export async function fetchMergedProfitCurrentMonthDashboard(
   }
 
   const totals = summarizeMergedReport(data);
-  const totalIncome = totals.grandIncome;
-  const totalExpense = totals.hostelOperatingExpenses;
-  const netProfit = totals.hostelNetProfit;
+  const totalIncome = totals.combinedIncome;
+  const totalExpense = totals.combinedExpense;
+  const netProfit = totals.combinedNetProfit;
   const margin =
     totalIncome > 0 ? Math.round((netProfit / totalIncome) * 100) : 0;
 
   return {
     totalIncome,
-    totalExpense: totals.hostelOperatingExpenses,
+    totalExpense,
     netProfit,
     margin,
     categoryData: buildMergedMonthlyCategoryData(data),
     vanNetProfit: Number(data.van?.net_profit ?? 0),
+    totals,
     error: null as string | null,
   };
 }
