@@ -241,11 +241,6 @@ export default function LedgerPage() {
                             <tr key={payment.id} className="hover:bg-gray-50/50 align-top">
                               <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                                 {formatDate(payment.expense_date)}
-                                {payment.hostel_name && payment.hostel_id !== currentHostel?.id && (
-                                  <p className="text-[10px] font-medium text-blue-600 mt-1 max-w-[8rem] leading-snug">
-                                    Recorded by {payment.hostel_name}
-                                  </p>
-                                )}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-800 break-words max-w-[14rem] sm:max-w-none">
                                 {payment.description?.trim() ? (
