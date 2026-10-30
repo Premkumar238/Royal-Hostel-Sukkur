@@ -20,8 +20,20 @@ import {
   getCombinedInvoiceStatus,
   getInvoiceTotal,
 } from "@/lib/studentInvoice";
-import type { FeeRecord, Student } from "@/types/database";
-import { Search, Filter, Loader2, FileText, RotateCcw } from "lucide-react";
+import type { FeeRecord, OutsideMessPayment, Student } from "@/types/database";
+import {
+  Search,
+  Filter,
+  Loader2,
+  FileText,
+  RotateCcw,
+  UtensilsCrossed,
+  X,
+  User,
+  Calendar,
+  DollarSign,
+  Trash2,
+} from "lucide-react";
 
 interface StudentFeeInvoiceRow {
   student: Student;
@@ -45,6 +57,15 @@ function FeesPageContent() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [billingMonth, setBillingMonth] = useState(currentYearMonth());
   const [returningStudentId, setReturningStudentId] = useState<string | null>(null);
+  const [outsideMessPayments, setOutsideMessPayments] = useState<OutsideMessPayment[]>([]);
+  const [showOutsideMessModal, setShowOutsideMessModal] = useState(false);
+  const [outsideMessLoading, setOutsideMessLoading] = useState(false);
+  const [outsidePersonName, setOutsidePersonName] = useState("");
+  const [outsideAmount, setOutsideAmount] = useState<number | "">("");
+  const [outsidePaymentDate, setOutsidePaymentDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [outsideFeeMonth, setOutsideFeeMonth] = useState(currentYearMonth());
 
   const supabase = createClient();
   const billingMonthDate = `${billingMonth}-01`;
@@ -67,14 +88,23 @@ function FeesPageContent() {
       .eq("status", "active")
       .order("full_name", { ascending: true });
 
-    const { data: feeData } = await supabase
-      .from("fee_records")
-      .select("*")
-      .eq("hostel_id", currentHostel.id)
-      .eq("billing_month", billingMonthDate);
+    const [{ data: feeData }, { data: outsideData }] = await Promise.all([
+      supabase
+        .from("fee_records")
+        .select("*")
+        .eq("hostel_id", currentHostel.id)
+        .eq("billing_month", billingMonthDate),
+      supabase
+        .from("outside_mess_payments")
+        .select("*")
+        .eq("hostel_id", currentHostel.id)
+        .eq("billing_month", billingMonthDate)
+        .order("payment_date", { ascending: false }),
+    ]);
 
     if (studentData) setStudents(studentData);
     if (feeData) setFeeRecords(feeData);
+    if (outsideData) setOutsideMessPayments(outsideData as OutsideMessPayment[]);
 
     setLoading(false);
   }, [billingMonthDate, currentHostel, supabase]);
@@ -195,8 +225,55 @@ function FeesPageContent() {
     fetchData();
   };
 
+  const openOutsideMessModal = () => {
+    setOutsidePersonName("");
+    setOutsideAmount("");
+    setOutsidePaymentDate(new Date().toISOString().split("T")[0]);
+    setOutsideFeeMonth(billingMonth);
+    setShowOutsideMessModal(true);
+  };
+
+  const handleSaveOutsideMess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentHostel || !outsidePersonName.trim()) return;
+    setOutsideMessLoading(true);
+
+    const { error } = await supabase.from("outside_mess_payments").insert([
+      {
+        hostel_id: currentHostel.id,
+        person_name: outsidePersonName.trim(),
+        amount: Number(outsideAmount) || 0,
+        payment_date: outsidePaymentDate,
+        billing_month: `${outsideFeeMonth}-01`,
+      },
+    ]);
+
+    setOutsideMessLoading(false);
+    if (!error) {
+      setShowOutsideMessModal(false);
+      fetchData();
+    } else {
+      alert(error.message);
+    }
+  };
+
+  const handleDeleteOutsideMess = async (id: string) => {
+    if (!confirm("Remove this outside mess payment?")) return;
+    const { error } = await supabase.from("outside_mess_payments").delete().eq("id", id);
+    if (!error) fetchData();
+    else alert(error.message);
+  };
+
   return (
     <div className="page-shell">
+      <div className="rounded-lg border border-blue-100 bg-blue-50/80 px-4 py-3 text-xs text-blue-900">
+        <p className="font-semibold">Fee month vs payment date</p>
+        <p className="mt-1 text-blue-800/90 leading-relaxed">
+          Use <strong>Fee Month</strong> when paying (including advance). Income counts in that fee
+          month on the dashboard, not on the payment date. Outside mess counts only toward Mess
+          income, not hostel fee totals.
+        </p>
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
         <div className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Active Students</span>
@@ -207,7 +284,9 @@ function FeesPageContent() {
           <p className="mt-1 text-2xl font-bold text-blue-900">
             {formatCurrency(collectedIncome, currentHostel?.currency)}
           </p>
-          <p className="mt-auto pt-1 text-xs text-blue-700/80">Paid invoices this month</p>
+          <p className="mt-auto pt-1 text-xs text-blue-700/80">
+            Paid for fee month {formatMonth(billingMonthDate)}
+          </p>
         </div>
         <div className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pending Rent</span>
@@ -217,6 +296,21 @@ function FeesPageContent() {
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pending Mess</span>
           <p className="mt-1 text-2xl font-bold text-emerald-700">{pendingMessCount}</p>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-gray-500">
+          Viewing fee month:{" "}
+          <strong className="text-gray-800">{formatMonth(billingMonthDate)}</strong>
+        </p>
+        <button
+          type="button"
+          onClick={openOutsideMessModal}
+          className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 cursor-pointer sm:w-auto"
+        >
+          <UtensilsCrossed className="h-4 w-4" />
+          Add Outside Mess
+        </button>
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -248,9 +342,51 @@ function FeesPageContent() {
             value={billingMonth}
             onChange={setBillingMonth}
             className="shrink-0 sm:w-auto"
+            monthsForward={12}
           />
         </div>
       </div>
+
+      {outsideMessPayments.length > 0 && (
+        <div className="rounded-xl border border-emerald-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-emerald-100 bg-emerald-50/50 px-4 py-3 sm:px-6">
+            <h3 className="text-sm font-bold text-emerald-900">Outside Mess — {formatMonth(billingMonthDate)}</h3>
+            <p className="text-xs text-emerald-700/80 mt-0.5">Included in Mess section income only</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <th className="px-4 py-3 sm:px-6">Name</th>
+                  <th className="px-4 py-3 sm:px-6">Payment date</th>
+                  <th className="px-4 py-3 sm:px-6">Amount</th>
+                  <th className="px-4 py-3 sm:px-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {outsideMessPayments.map((row) => (
+                  <tr key={row.id} className="hover:bg-gray-50/50">
+                    <td className="px-4 py-3 sm:px-6 font-medium text-gray-900">{row.person_name}</td>
+                    <td className="px-4 py-3 sm:px-6 text-gray-600">{formatDate(row.payment_date)}</td>
+                    <td className="px-4 py-3 sm:px-6 font-semibold text-emerald-700">
+                      {formatCurrency(row.amount, currentHostel?.currency)}
+                    </td>
+                    <td className="px-4 py-3 sm:px-6 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteOutsideMess(row.id)}
+                        className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex h-96 items-center justify-center">
@@ -369,6 +505,103 @@ function FeesPageContent() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {showOutsideMessModal && (
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowOutsideMessModal(false)} />
+          <div className="modal-panel max-w-md">
+            <button
+              type="button"
+              onClick={() => setShowOutsideMessModal(false)}
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+            <h3 className="text-base font-bold text-gray-900 mb-2">Add Outside Mess</h3>
+            <p className="text-xs text-gray-400 mb-6">
+              Non-student mess payment — counts in Mess income for the selected fee month.
+            </p>
+
+            <form onSubmit={handleSaveOutsideMess} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    required
+                    value={outsidePersonName}
+                    onChange={(e) => setOutsidePersonName(e.target.value)}
+                    placeholder="Any person (student or non-student)"
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-blue-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Amount
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={outsideAmount}
+                    onChange={(e) =>
+                      setOutsideAmount(e.target.value === "" ? "" : Number(e.target.value))
+                    }
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm focus:border-blue-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Payment date
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="date"
+                    required
+                    value={outsidePaymentDate}
+                    onChange={(e) => setOutsidePaymentDate(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm cursor-pointer focus:border-blue-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Fee month
+                </label>
+                <MonthPicker
+                  id="outside-mess-fee-month"
+                  value={outsideFeeMonth}
+                  onChange={setOutsideFeeMonth}
+                  monthsForward={12}
+                  className="w-full"
+                />
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Mess income is counted in this month (can be ahead of payment date).
+                </p>
+              </div>
+              <button
+                type="submit"
+                disabled={outsideMessLoading}
+                className="w-full rounded-lg bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 cursor-pointer"
+              >
+                {outsideMessLoading ? (
+                  <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                ) : (
+                  "Save Outside Mess"
+                )}
+              </button>
+            </form>
           </div>
         </div>
       )}

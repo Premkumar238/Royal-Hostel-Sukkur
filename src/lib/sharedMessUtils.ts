@@ -45,6 +45,8 @@ export async function deleteSharedMessExpense(
 
 export interface SharedMessMonthSummary {
   total_income: number;
+  student_mess_income?: number;
+  outside_mess_income?: number;
   total_expenses: number;
   mess_profit: number;
   billing_month: string;

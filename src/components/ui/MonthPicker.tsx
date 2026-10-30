@@ -13,28 +13,40 @@ type MonthPickerProps = {
   monthsBack?: number;
   /** Latest selectable month `YYYY-MM` (defaults to current month). */
   maxMonth?: string;
+  /** Months after maxMonth to include (advance fee / billing months). */
+  monthsForward?: number;
 };
 
-function buildMonthOptions(maxMonth: string, monthsBack: number) {
+function addCalendarMonths(yearMonth: string, delta: number): string {
+  const match = yearMonth.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return yearMonth;
+  let year = Number(match[1]);
+  let month = Number(match[2]) + delta;
+  while (month > 12) {
+    month -= 12;
+    year += 1;
+  }
+  while (month < 1) {
+    month += 12;
+    year -= 1;
+  }
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function buildMonthOptions(maxMonth: string, monthsBack: number, monthsForward = 0) {
   const match = maxMonth.match(/^(\d{4})-(\d{2})$/);
   if (!match) return [];
 
-  let year = Number(match[1]);
-  let month = Number(match[2]);
+  let cursor = addCalendarMonths(maxMonth, monthsForward);
+  const total = monthsBack + monthsForward + 1;
   const options: { value: string; label: string }[] = [];
 
-  for (let i = 0; i < monthsBack; i++) {
-    const value = `${year}-${String(month).padStart(2, "0")}`;
+  for (let i = 0; i < total; i++) {
     options.push({
-      value,
-      label: formatMonth(`${value}-01`),
+      value: cursor,
+      label: formatMonth(`${cursor}-01`),
     });
-
-    month -= 1;
-    if (month < 1) {
-      month = 12;
-      year -= 1;
-    }
+    cursor = addCalendarMonths(cursor, -1);
   }
 
   return options;
@@ -47,15 +59,16 @@ export function MonthPicker({
   id,
   monthsBack = 48,
   maxMonth = currentYearMonth(),
+  monthsForward = 0,
 }: MonthPickerProps) {
   const options = useMemo(
-    () => buildMonthOptions(maxMonth, monthsBack),
-    [maxMonth, monthsBack]
+    () => buildMonthOptions(maxMonth, monthsBack, monthsForward),
+    [maxMonth, monthsBack, monthsForward]
   );
 
   const safeValue = options.some((option) => option.value === value)
     ? value
-    : (options[0]?.value ?? value);
+    : (options.find((o) => o.value === value)?.value ?? options[0]?.value ?? value);
 
   return (
     <div className={`relative inline-flex w-full min-w-0 sm:w-auto ${className}`}>

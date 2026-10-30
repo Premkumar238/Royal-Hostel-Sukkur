@@ -7,8 +7,9 @@ import {
 import type { FeeRecord, Student } from "@/types/database";
 
 /**
- * Matches Fees & Invoices: sum of fully paid invoice totals plus amounts
- * collected on partial invoices (paid rent/mess legs only).
+ * Hostel fee income for a billing month (fee month), not payment date.
+ * Matches Fees & Invoices: paid invoice totals + partial paid legs.
+ * Outside mess is excluded (Mess section only).
  */
 export function computeFeesAndInvoicesCollectedIncome(
   students: Student[],

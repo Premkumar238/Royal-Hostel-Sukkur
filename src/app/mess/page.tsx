@@ -31,6 +31,7 @@ export default function MessPage() {
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [messProfit, setMessProfit] = useState(0);
+  const [outsideMessIncome, setOutsideMessIncome] = useState(0);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
   const [showDailyMessModal, setShowDailyMessModal] = useState(false);
@@ -56,10 +57,12 @@ export default function MessPage() {
     setMessExpenses(messResult.data);
     if (summaryResult.data) {
       setTotalIncome(Number(summaryResult.data.total_income));
+      setOutsideMessIncome(Number(summaryResult.data.outside_mess_income ?? 0));
       setTotalExpenses(Number(summaryResult.data.total_expenses));
       setMessProfit(Number(summaryResult.data.mess_profit));
     } else {
       setTotalIncome(0);
+      setOutsideMessIncome(0);
       setTotalExpenses(0);
       setMessProfit(0);
     }
@@ -156,7 +159,10 @@ export default function MessPage() {
               {formatCurrency(totalIncome, currency)}
             </p>
             <p className="mt-auto pt-1 text-xs text-emerald-700/80">
-              Paid mess fees · {formatMonth(billingMonthDate)}
+              {outsideMessIncome > 0
+                ? `Includes ${formatCurrency(outsideMessIncome, currency)} outside mess · `
+                : ""}
+              {formatMonth(billingMonthDate)}
             </p>
           </div>
           <div className="flex h-full flex-col rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-sm">

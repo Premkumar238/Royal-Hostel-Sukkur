@@ -16,6 +16,7 @@ import {
   getInvoiceTotal,
 } from "@/lib/studentInvoice";
 import { formatSupabaseError, saveFeeRecord } from "@/lib/feeRecordUtils";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { downloadStudentInvoicePDF } from "@/lib/pdfGenerator";
 import type { FeeRecord, PaymentMethod, Student } from "@/types/database";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
@@ -271,19 +272,22 @@ function PayInvoiceForm() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                  Billing Month
+                  Fee month
                 </label>
-                <input
-                  type="month"
+                <MonthPicker
+                  id="pay-fee-month"
                   value={billingMonth}
-                  onChange={(e) => setBillingMonth(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 py-2.5 px-3 text-sm cursor-pointer"
-                  required
+                  onChange={setBillingMonth}
+                  monthsForward={12}
+                  className="w-full"
                 />
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Dashboard income uses this month (advance OK — not the payment date).
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                  Invoice Date
+                  Invoice date
                 </label>
                 <input
                   type="date"
@@ -408,7 +412,7 @@ function PayInvoiceForm() {
               {markAsPaid && (
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-                    Payment Date
+                    Payment date (money received)
                   </label>
                   <input
                     type="date"

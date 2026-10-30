@@ -241,6 +241,16 @@ export interface AdmissionFee {
   students?: Student;
 }
 
+export interface OutsideMessPayment {
+  id: string;
+  hostel_id: string;
+  person_name: string;
+  amount: number;
+  payment_date: string;
+  billing_month: string;
+  created_at: string;
+}
+
 export interface DashboardStats {
   total_students: number;
   active_students: number;
@@ -356,6 +366,12 @@ export type Database = {
         Row: AdmissionFee;
         Insert: Partial<AdmissionFee>;
         Update: Partial<AdmissionFee>;
+        Relationships: [];
+      };
+      outside_mess_payments: {
+        Row: OutsideMessPayment;
+        Insert: Partial<OutsideMessPayment>;
+        Update: Partial<OutsideMessPayment>;
         Relationships: [];
       };
     };
